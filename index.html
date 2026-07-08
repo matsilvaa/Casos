@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mesa de Casos — Cumbre Asesorías Ltda.</title>
+<style>
+  :root{
+    --ink:#15272C; --primary:#12565D; --primary-strong:#0B3B41; --primary-soft:#E4EEEE;
+    --canvas:#EDF1F1; --surface:#FFFFFF; --line:#D6E0E0; --line-soft:#E7EDED;
+    --muted:#5B6B70; --muted-2:#7C8A8E;
+    --recibido:#2563EB; --proceso:#B45309; --cerrado:#15803D;
+    --emerg:#C1121F; --alta:#DC6B1A; --media:#2A7DA3; --baja:#6B7B82;
+    --radius:12px; --radius-s:8px;
+    --shadow:0 1px 2px rgba(16,40,44,.06),0 8px 24px rgba(16,40,44,.06);
+    --shadow-s:0 1px 2px rgba(16,40,44,.08);
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:var(--sans);color:var(--ink);background:var(--canvas);line-height:1.5;-webkit-font-smoothing:antialiased}
+  button{font-family:inherit;cursor:pointer}
+  input,select,textarea{font-family:inherit;font-size:14px}
+  .mono{font-family:var(--mono)}
+
+  .center-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(1200px 600px at 50% -10%,#DCEAEA,transparent),var(--canvas)}
+  .landing{max-width:760px;width:100%}
+  .landing .lead{text-align:center;margin-bottom:26px}
+  .landing .mark{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--primary);font-weight:700}
+  .landing h1{font-size:32px;margin:8px 0 6px;letter-spacing:-.025em}
+  .landing p{color:var(--muted);margin:0}
+  .role-cards{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .role-card{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow-s);transition:.16s;cursor:pointer}
+  .role-card:hover{border-color:var(--primary);box-shadow:var(--shadow);transform:translateY(-2px)}
+  .role-card .rc-ic{width:46px;height:46px;border-radius:12px;background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:14px}
+  .role-card h3{margin:0 0 6px;font-size:18px}
+  .role-card p{font-size:13.5px;color:var(--muted);margin:0 0 14px}
+  .role-card .go{font-size:13px;font-weight:700;color:var(--primary)}
+  .login-card{max-width:440px;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px}
+  .login-card h2{margin:2px 0 4px;font-size:22px}
+  .login-card .sub{color:var(--muted);font-size:13.5px;margin-bottom:20px}
+  .msbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;background:#fff;border:1px solid var(--line);border-radius:var(--radius-s);padding:12px;font-size:14px;font-weight:600;color:var(--ink)}
+  .msbtn:hover{border-color:var(--primary)}
+  .msbtn .ms-logo{width:18px;height:18px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:2px}
+  .msbtn .ms-logo i{display:block}
+  .msbtn .ms-logo i:nth-child(1){background:#F25022}.msbtn .ms-logo i:nth-child(2){background:#7FBA00}
+  .msbtn .ms-logo i:nth-child(3){background:#00A4EF}.msbtn .ms-logo i:nth-child(4){background:#FFB900}
+  .note-info{background:#EAF0FB;border:1px solid #CDDCF5;border-radius:var(--radius-s);padding:11px 13px;font-size:12.5px;color:#274672;margin-top:14px}
+  .err-box{background:#FBE7E8;border:1px solid #F0C7C9;border-radius:var(--radius-s);padding:11px 13px;font-size:12.5px;color:#8E1319;margin-top:14px}
+
+  .app{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+  .side{background:var(--primary-strong);color:#DCEAEA;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+  .brand{padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .brand .mark{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#8FBEC0;font-weight:600}
+  .brand h1{font-size:18px;margin:6px 0 2px;color:#fff;font-weight:650;letter-spacing:-.01em}
+  .brand .org{font-size:12px;color:#9DBCBE}
+  .nav{padding:14px 12px;display:flex;flex-direction:column;gap:2px;flex:1}
+  .nav button{display:flex;align-items:center;gap:11px;width:100%;text-align:left;background:transparent;border:0;color:#BFD6D7;padding:11px 12px;border-radius:var(--radius-s);font-size:14px;font-weight:500}
+  .nav button:hover{background:rgba(255,255,255,.06);color:#fff}
+  .nav button.active{background:var(--primary);color:#fff}
+  .nav .ico{width:18px;height:18px;flex:none;opacity:.9;text-align:center}
+  .nav .badge{margin-left:auto;background:#DC6B1A;color:#fff;font-size:11px;font-weight:700;padding:1px 7px;border-radius:20px}
+  .nav button.active .badge{background:#fff;color:var(--primary-strong)}
+  .side .foot{padding:12px 14px;border-top:1px solid rgba(255,255,255,.08)}
+  .side .foot .who{font-size:12px;color:#9DBCBE;margin-bottom:8px;word-break:break-all}
+  .side .foot .exit{width:100%;background:rgba(255,255,255,.06);color:#CFE3E3;border:0;padding:10px;border-radius:8px;font-size:13px;font-weight:600}
+  .side .foot .exit:hover{background:rgba(255,255,255,.12);color:#fff}
+
+  .main{min-width:0}
+  .content{padding:28px 34px 60px;max-width:1120px;margin:0 auto}
+  .view-head{margin-bottom:22px}
+  .view-head .kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--primary);font-weight:650}
+  .view-head h2{font-size:25px;margin:5px 0 4px;letter-spacing:-.02em;font-weight:680}
+  .view-head p{margin:0;color:var(--muted);font-size:14px;max-width:64ch}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-s)}
+  .pad{padding:22px}
+
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+  .field.full{grid-column:1/-1}
+  label.lbl{font-size:13px;font-weight:600;color:var(--ink)}
+  label.lbl .req{color:var(--emerg)}
+  .hint{font-size:12px;color:var(--muted-2)}
+  .ctrl{padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-s);background:#fff;color:var(--ink);width:100%;transition:border-color .15s,box-shadow .15s}
+  .ctrl:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+  .ctrl:disabled{background:#F4F7F7;color:var(--muted)}
+  textarea.ctrl{min-height:112px;resize:vertical}
+  .check{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius-s);background:#FBFCFC}
+  .check input{margin-top:2px}
+  .check .t{font-size:13px}
+  .sect-label{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-2);font-weight:700;margin:6px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line-soft)}
+
+  .ac-wrap{position:relative}
+  .ac-ok{position:absolute;right:12px;top:21px;transform:translateY(-50%);color:var(--cerrado);font-weight:700;font-size:15px;pointer-events:none}
+
+  .triage{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:linear-gradient(180deg,#F7FAFA,#fff)}
+  .triage .th{display:flex;align-items:center;gap:9px;padding:13px 16px;border-bottom:1px solid var(--line-soft);background:#fff}
+  .triage .th .dot{width:8px;height:8px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 4px var(--primary-soft)}
+  .triage .th h4{margin:0;font-size:13px;letter-spacing:.02em;text-transform:uppercase;color:var(--primary);font-weight:700}
+  .triage .tb{padding:16px}
+  .triage.empty .tb{color:var(--muted-2);font-size:13px}
+  .trow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-bottom:1px dashed var(--line-soft)}
+  .trow:last-child{border-bottom:0}
+  .trow .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .trow .v{font-size:14px;font-weight:600;text-align:right}
+  .fadein{animation:fade .32s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:650;padding:3px 9px;border-radius:20px;white-space:nowrap}
+  .pill .pdot{width:7px;height:7px;border-radius:50%}
+  .p-emerg{background:#FBE7E8;color:#8E1319}.p-emerg .pdot{background:var(--emerg)}
+  .p-alta{background:#FBEEDF;color:#9A4B12}.p-alta .pdot{background:var(--alta)}
+  .p-media{background:#E2F0F6;color:#1C5C79}.p-media .pdot{background:var(--media)}
+  .p-baja{background:#EDF1F1;color:#4C5A5E}.p-baja .pdot{background:var(--baja)}
+  .s-recibido{background:#E6EEFE;color:#1D4ED8}.s-recibido .pdot{background:var(--recibido)}
+  .s-proceso{background:#FBEEDF;color:#92400E}.s-proceso .pdot{background:var(--proceso)}
+  .s-cerrado{background:#E4F3E9;color:#166534}.s-cerrado .pdot{background:var(--cerrado)}
+  .ref-tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:650;color:var(--primary);background:var(--primary-soft);padding:2px 8px;border-radius:6px;border:0;cursor:pointer}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:#fff;color:var(--ink);padding:10px 16px;border-radius:var(--radius-s);font-size:14px;font-weight:600;transition:.15s}
+  .btn:hover{border-color:var(--muted-2)}
+  .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+  .btn.primary:hover{background:var(--primary-strong);border-color:var(--primary-strong)}
+  .btn.ghost{background:transparent}
+  .btn.sm{padding:7px 12px;font-size:13px}
+  .btn.block{width:100%}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+
+  .filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px}
+  .chip{border:1px solid var(--line);background:#fff;color:var(--muted);padding:7px 13px;border-radius:20px;font-size:13px;font-weight:600}
+  .chip.active{background:var(--ink);border-color:var(--ink);color:#fff}
+  .search{flex:1;min-width:200px}
+  .ms-wrap{position:relative}
+  .ms-btn{border:1px solid var(--line);background:#fff;padding:7px 12px;border-radius:20px;font-size:13px;font-weight:600;color:var(--ink);display:flex;gap:6px;align-items:center}
+  .ms-btn.on{border-color:var(--primary);color:var(--primary)}
+  .ms-menu{position:absolute;top:calc(100% + 6px);left:0;background:#fff;border:1px solid var(--line);border-radius:var(--radius-s);box-shadow:var(--shadow);z-index:30;width:260px;padding:8px}
+  .ms-menu .ms-search{width:100%;margin-bottom:6px}
+  .ms-list{max-height:220px;overflow-y:auto}
+  .ms-opt{display:flex;gap:9px;align-items:center;padding:7px 8px;border-radius:6px;font-size:13.5px;cursor:pointer}
+  .ms-opt:hover{background:var(--primary-soft)}
+  .ms-foot{display:flex;justify-content:space-between;border-top:1px solid var(--line-soft);margin-top:6px;padding-top:8px}
+  .ms-foot button{background:none;border:0;font-size:12.5px;font-weight:600;color:var(--primary)}
+  .ac-empty{padding:11px;font-size:13px;color:var(--muted-2)}
+
+  .caselist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:#fff}
+  .caserow{display:grid;grid-template-columns:120px 1fr auto;gap:14px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line-soft);text-align:left;background:#fff;border-left:3px solid transparent;width:100%}
+  .caserow:last-child{border-bottom:0}
+  .caserow:hover{background:#F7FAFA}
+  .caserow.b-emerg{border-left-color:var(--emerg)}
+  .caserow.b-alta{border-left-color:var(--alta)}
+  .caserow .folio{font-size:12px;color:var(--muted)}
+  .caserow .tt{font-weight:620;font-size:14px}
+  .caserow .meta{font-size:12px;color:var(--muted-2);margin-top:2px}
+  .caserow .rt{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+  .empty-state{text-align:center;padding:52px 20px;color:var(--muted)}
+  .empty-state .em-ic{font-size:30px;margin-bottom:8px;opacity:.5}
+
+  .scrim{position:fixed;inset:0;background:rgba(16,32,36,.42);display:flex;justify-content:flex-end;z-index:50}
+  .drawer{width:min(560px,100%);background:var(--canvas);height:100%;overflow-y:auto;box-shadow:-14px 0 40px rgba(0,0,0,.18);animation:slidein .28s ease}
+  @keyframes slidein{from{transform:translateX(24px);opacity:.6}to{transform:none;opacity:1}}
+  .dr-head{position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--line);padding:18px 22px;z-index:2}
+  .dr-head .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+  .dr-head h3{margin:8px 0 4px;font-size:19px;letter-spacing:-.01em}
+  .dr-close{border:0;background:#EDF1F1;width:32px;height:32px;border-radius:8px;font-size:17px;color:var(--muted);line-height:1}
+  .dr-body{padding:20px 22px 40px}
+  .kv{display:grid;grid-template-columns:120px 1fr;gap:6px 14px;font-size:13px;margin:2px 0 18px}
+  .kv dt{color:var(--muted);font-weight:500}
+  .kv dd{margin:0;font-weight:560}
+  .block-title{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2);font-weight:700;margin:20px 0 10px}
+  .thread{display:flex;flex-direction:column;gap:10px}
+  .msg{background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+  .msg.staff{background:var(--primary-soft);border-color:#CFE1E1}
+  .msg .who{font-size:12px;font-weight:700;display:flex;justify-content:space-between;gap:8px;margin-bottom:4px}
+  .msg .who .tm{color:var(--muted-2);font-weight:500}
+  .msg .tx{font-size:13.5px;white-space:pre-wrap}
+  .log{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+  .log li{display:flex;gap:10px;font-size:12.5px;color:var(--muted);align-items:flex-start}
+  .log .lg-dot{width:7px;height:7px;border-radius:50%;background:var(--primary);margin-top:5px;flex:none}
+  .status-actions{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px}
+  .status-actions .btn{flex:1;min-width:110px}
+  .locknote{background:#F4F7F7;border:1px dashed var(--line);border-radius:var(--radius-s);padding:11px 13px;font-size:12.5px;color:var(--muted);display:flex;gap:8px;align-items:flex-start}
+
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:22px}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px}
+  .kpi .n{font-size:30px;font-weight:720;letter-spacing:-.03em;line-height:1}
+  .kpi .l{font-size:12px;color:var(--muted);margin-top:6px;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+  .kpi.alert .n{color:var(--emerg)}
+  .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .bar-row{margin-bottom:12px}
+  .bar-row .bl{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+  .bar-row .bl .bn{font-weight:600}.bar-row .bl .bc{color:var(--muted);font-variant-numeric:tabular-nums}
+  .bar{height:9px;border-radius:6px;background:#EDF1F1;overflow:hidden}
+  .bar > span{display:block;height:100%;border-radius:6px;background:var(--primary)}
+
+  .rule-fam{margin-bottom:8px}
+  .rule-fam summary{cursor:pointer;padding:13px 16px;font-weight:640;background:#fff;border:1px solid var(--line);border-radius:var(--radius-s);list-style:none;display:flex;justify-content:space-between;align-items:center}
+  .rule-fam summary::-webkit-details-marker{display:none}
+  .rule-fam[open] summary{border-bottom-left-radius:0;border-bottom-right-radius:0}
+  .rule-tbl{border:1px solid var(--line);border-top:0;border-radius:0 0 var(--radius-s) var(--radius-s);overflow:hidden}
+  .rule-tbl .rr{display:grid;grid-template-columns:1fr 92px 130px 120px;gap:10px;padding:10px 16px;font-size:13px;border-bottom:1px solid var(--line-soft);align-items:center;background:#fff}
+  .rule-tbl .rr:last-child{border-bottom:0}
+  .rule-tbl .rr.hd{background:#F6F9F9;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted-2);font-weight:700}
+  .note{background:#FBFAF3;border:1px solid #E9E3C9;border-radius:var(--radius-s);padding:13px 15px;font-size:13px;color:#6B5E2E;margin-top:14px}
+  .note b{color:#5A4E22}
+
+  .qr-box{display:inline-flex;flex-direction:column;align-items:center;gap:10px;padding:16px;background:#fff;border:1px solid var(--line);border-radius:12px}
+  .qr-box .qr-render{width:200px;height:200px;display:flex;align-items:center;justify-content:center}
+
+  .toasts{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:80;width:min(440px,92vw)}
+  .toast{background:var(--ink);color:#fff;padding:12px 16px;border-radius:10px;font-size:13.5px;box-shadow:var(--shadow);display:flex;gap:10px;align-items:flex-start;animation:fade .25s ease}
+  .toast .tk{width:6px;align-self:stretch;border-radius:4px;background:var(--cerrado);flex:none}
+  .toast.info .tk{background:var(--recibido)}
+  .toast.warn .tk{background:var(--alta)}
+  .toast.error .tk{background:var(--emerg)}
+
+  .conf{text-align:center;padding:10px}
+  .conf .ok{width:56px;height:56px;border-radius:50%;background:#E4F3E9;color:var(--cerrado);display:flex;align-items:center;justify-content:center;font-size:28px;margin:6px auto 14px}
+  .conf h3{margin:0 0 6px;font-size:22px}
+  .conf .folio-lg{font-family:var(--mono);font-size:16px;background:#EDF1F1;padding:5px 12px;border-radius:8px;display:inline-block;margin:8px 0 18px}
+  .conf .actions-done{text-align:left;max-width:420px;margin:0 auto 22px}
+
+  .loader{min-height:100vh;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px}
+
+  @media (max-width:900px){
+    .app{grid-template-columns:1fr}
+    .side{position:static;height:auto;flex-direction:row;align-items:center;overflow-x:auto}
+    .brand{border-bottom:0;border-right:1px solid rgba(255,255,255,.08);white-space:nowrap;padding:14px 16px}
+    .brand h1{font-size:15px}.brand .org{display:none}
+    .nav{flex-direction:row;padding:8px;flex:1}
+    .nav button{white-space:nowrap;padding:9px 12px}
+    .side .foot{border-top:0;border-left:1px solid rgba(255,255,255,.08);padding:8px}
+    .side .foot .who{display:none}
+    .content{padding:20px 16px 60px}
+    .form-grid,.dash-grid,.kv{grid-template-columns:1fr}
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .role-cards{grid-template-columns:1fr}
+    .rule-tbl .rr{grid-template-columns:1fr;gap:4px}
+    .rule-tbl .rr.hd{display:none}
+    .caserow{grid-template-columns:1fr;gap:8px}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="root"><div class="loader">Cargando…</div></div>
+
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+
+<script type="text/babel">
+const {useState,useEffect,useMemo,useRef} = React;
+
+/* =========================================================================
+   1 · CONFIGURACIÓN DE FIREBASE  ·  proyecto MesaDeCasos
+   ========================================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyCM4zW1QsipRFKm7fnLB8IOZFhOdlZ8Wk0",
+  authDomain: "mesadecasos-650eb.firebaseapp.com",
+  projectId: "mesadecasos-650eb",
+  storageBucket: "mesadecasos-650eb.firebasestorage.app",
+  messagingSenderId: "177845079908",
+  appId: "1:177845079908:web:254463f58440b4bbb8b471"
+};
+const MS_TENANT = "51705270-efbc-4ca7-835b-593cb7517ca5";
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+/* =========================================================================
+   2 · DOMINIO  ·  taxonomía de casos (editable)
+   ========================================================================= */
+const RESPONSABLES = ["Administración","Conserjería","Mantención","Aseo","Seguridad","Cobranzas","Comité"];
+
+// En producción, este listado se obtiene del archivo reporte_comunidades_(fecha), hoja "Egresos - titular".
+const EDIFICIOS = ["Capri","Ibsen","Portofino","Bremen","Rampa","Capitán Wood","Andes","Pacífico","Mirador","Alameda","Bilbao","Los Leones","Kennedy Norte","San Damián"];
+
+const FAMILIAS = {
+  seguridad:{label:"Seguridad y emergencias", ico:"🛡️"},
+  infra:{label:"Infraestructura y equipamiento", ico:"🔧"},
+  servicios:{label:"Servicios comunes", ico:"💧"},
+  amenities:{label:"Áreas comunes y amenities", ico:"🏊"},
+  convivencia:{label:"Convivencia", ico:"🤝"},
+  personal:{label:"Personal del edificio", ico:"👤"},
+  cobranzas:{label:"Cobranzas y gasto común", ico:"📄"},
+  docs:{label:"Documentos y solicitudes", ico:"🗂️"},
+};
+
+const CATS = [
+  {id:"fuga_gas", fam:"seguridad", label:"Detección de fuga de gas", prioridad:"Emergencia", resp:"Seguridad", accion:"ticket"},
+  {id:"atrapado", fam:"seguridad", label:"Persona atrapada en ascensor", prioridad:"Emergencia", resp:"Seguridad", accion:"ticket"},
+  {id:"incendio", fam:"seguridad", label:"Alarma o riesgo de incendio", prioridad:"Emergencia", resp:"Seguridad", accion:"ticket"},
+  {id:"inundacion", fam:"seguridad", label:"Fuga o inundación de agua mayor", prioridad:"Emergencia", resp:"Mantención", accion:"ticket"},
+  {id:"acceso_abierto", fam:"seguridad", label:"Portón o acceso abierto (riesgo)", prioridad:"Alta", resp:"Seguridad", accion:"ticket"},
+  {id:"personas_ajenas", fam:"seguridad", label:"Personas ajenas o sospechosas", prioridad:"Alta", resp:"Seguridad", accion:"ticket"},
+  {id:"cctv", fam:"seguridad", label:"Cámaras de seguridad (CCTV) inoperativas", prioridad:"Alta", resp:"Mantención", accion:"ticket"},
+  {id:"extintores", fam:"seguridad", label:"Extintores o luces de emergencia vencidos/faltantes", prioridad:"Alta", resp:"Mantención", accion:"ticket"},
+  {id:"ascensores", fam:"infra", label:"Mal funcionamiento de ascensores", prioridad:"Alta", resp:"Mantención", accion:"ticket"},
+  {id:"acceso_peatonal", fam:"infra", label:"Falla de puerta peatonal", prioridad:"Media", resp:"Mantención", accion:"ticket"},
+  {id:"acceso_vehicular", fam:"infra", label:"Falla de acceso vehicular / portón", prioridad:"Alta", resp:"Mantención", accion:"ticket"},
+  {id:"citofono", fam:"infra", label:"Falla de citófono / intercomunicador", prioridad:"Media", resp:"Mantención", accion:"ticket"},
+  {id:"tags", fam:"infra", label:"Falla de tags o controles de acceso", prioridad:"Media", resp:"Conserjería", accion:"ticket"},
+  {id:"iluminacion", fam:"infra", label:"Iluminación de áreas comunes en mal estado", prioridad:"Media", resp:"Mantención", accion:"ticket"},
+  {id:"presion_agua", fam:"infra", label:"Problemas de presión de agua", prioridad:"Alta", resp:"Mantención", accion:"ticket"},
+  {id:"bombas", fam:"infra", label:"Falla de bombas o estanques de agua", prioridad:"Alta", resp:"Mantención", accion:"ticket"},
+  {id:"electricidad", fam:"infra", label:"Falla eléctrica en áreas comunes", prioridad:"Alta", resp:"Mantención", accion:"ticket"},
+  {id:"generador", fam:"infra", label:"Falla de grupo electrógeno", prioridad:"Alta", resp:"Mantención", accion:"ticket"},
+  {id:"senaletica", fam:"infra", label:"Señalética en mal estado", prioridad:"Baja", resp:"Mantención", accion:"ticket"},
+  {id:"filtraciones", fam:"infra", label:"Filtraciones o goteras en áreas comunes", prioridad:"Alta", resp:"Mantención", accion:"ticket"},
+  {id:"humedad", fam:"infra", label:"Humedad u hongos en áreas comunes", prioridad:"Media", resp:"Mantención", accion:"ticket"},
+  {id:"filtracion_sub", fam:"infra", label:"Filtración en estacionamientos subterráneos", prioridad:"Media", resp:"Mantención", accion:"ticket"},
+  {id:"calefaccion", fam:"servicios", label:"Falla de calefacción central", prioridad:"Alta", resp:"Mantención", accion:"ticket"},
+  {id:"agua_caliente", fam:"servicios", label:"Temperatura de agua caliente central", prioridad:"Alta", resp:"Mantención", accion:"ticket"},
+  {id:"gas_central", fam:"servicios", label:"Suministro o lectura de gas", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"aseo", fam:"servicios", label:"Aseo deficiente en áreas comunes", prioridad:"Media", resp:"Aseo", accion:"ticket"},
+  {id:"basura", fam:"servicios", label:"Basura mal dispuesta o ductos tapados", prioridad:"Media", resp:"Aseo", accion:"ticket"},
+  {id:"areas_verdes", fam:"servicios", label:"Mantención de áreas verdes", prioridad:"Baja", resp:"Aseo", accion:"ticket"},
+  {id:"plagas", fam:"servicios", label:"Presencia de plagas (roedores, insectos, palomas)", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"ventilacion", fam:"servicios", label:"Ventilación deficiente en subterráneos", prioridad:"Media", resp:"Mantención", accion:"ticket"},
+  {id:"piscina", fam:"amenities", label:"Problema con la piscina", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"gimnasio", fam:"amenities", label:"Problema con el gimnasio", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"sala_multiuso", fam:"amenities", label:"Problema con la sala multiuso", prioridad:"Baja", resp:"Administración", accion:"ticket"},
+  {id:"juegos", fam:"amenities", label:"Problema en juegos infantiles", prioridad:"Media", resp:"Mantención", accion:"ticket"},
+  {id:"quinchos", fam:"amenities", label:"Problema con quinchos", prioridad:"Baja", resp:"Administración", accion:"ticket"},
+  {id:"bicicleteros", fam:"amenities", label:"Problema con bicicleteros", prioridad:"Baja", resp:"Administración", accion:"ticket"},
+  {id:"reserva", fam:"amenities", label:"Reserva de espacios comunes", prioridad:"Baja", resp:"Administración", accion:"consulta"},
+  {id:"ruidos", fam:"convivencia", label:"Ruidos molestos", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"olores", fam:"convivencia", label:"Olores molestos", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"humo", fam:"convivencia", label:"Humo de tabaco que ingresa al departamento", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"mascotas", fam:"convivencia", label:"Incumplimiento del reglamento de mascotas", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"est_visitas", fam:"convivencia", label:"Uso indebido de estacionamientos de visitas", prioridad:"Media", resp:"Conserjería", accion:"ticket"},
+  {id:"est_residentes", fam:"convivencia", label:"Uso indebido de estacionamientos de residentes", prioridad:"Media", resp:"Conserjería", accion:"ticket"},
+  {id:"bodegas", fam:"convivencia", label:"Uso indebido de bodegas", prioridad:"Baja", resp:"Administración", accion:"ticket"},
+  {id:"objetos", fam:"convivencia", label:"Objetos arrojados desde altura", prioridad:"Alta", resp:"Administración", accion:"ticket"},
+  {id:"vandalismo", fam:"convivencia", label:"Vandalismo o rayados", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"obras", fam:"convivencia", label:"Remodelaciones fuera de horario o sin permiso", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"mudanzas", fam:"convivencia", label:"Incumplimiento de horarios de mudanza", prioridad:"Baja", resp:"Conserjería", accion:"ticket"},
+  {id:"encomiendas", fam:"convivencia", label:"Encomienda o paquete extraviado", prioridad:"Media", resp:"Conserjería", accion:"ticket"},
+  {id:"conducta", fam:"convivencia", label:"Conducta de otro residente", prioridad:"Media", resp:"Comité", accion:"ticket"},
+  {id:"trato_conserje", fam:"personal", label:"Trato o conducta de un conserje", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"trato_aseo", fam:"personal", label:"Trato o conducta del personal de aseo", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"trato_mayordomo", fam:"personal", label:"Trato o conducta del mayordomo", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"felicitacion", fam:"personal", label:"Felicitación o reconocimiento al personal", prioridad:"Baja", resp:"Administración", accion:"consulta"},
+  {id:"comprobante", fam:"cobranzas", label:"Comprobante de pago no considerado (aparece deuda)", prioridad:"Alta", resp:"Cobranzas", accion:"ticket"},
+  {id:"solicitud_gc", fam:"cobranzas", label:"Solicitud del gasto común (última boleta)", prioridad:"Baja", resp:"Cobranzas", accion:"ticket"},
+  {id:"prorrateo", fam:"cobranzas", label:"Error en el prorrateo o en el gasto común", prioridad:"Media", resp:"Cobranzas", accion:"ticket"},
+  {id:"convenio", fam:"cobranzas", label:"Convenio o repactación de deuda", prioridad:"Media", resp:"Cobranzas", accion:"ticket"},
+  {id:"cert_nodeuda", fam:"cobranzas", label:"Certificado de no deuda", prioridad:"Baja", resp:"Cobranzas", accion:"ticket"},
+  {id:"cert_residencia", fam:"docs", label:"Certificado de residencia", prioridad:"Baja", resp:"Administración", accion:"ticket"},
+  {id:"actas", fam:"docs", label:"Acceso a actas de asamblea", prioridad:"Baja", resp:"Administración", accion:"ticket"},
+  {id:"reglamento", fam:"docs", label:"Copia del reglamento de copropiedad", prioridad:"Baja", resp:"Administración", accion:"ticket"},
+  {id:"sugerencia", fam:"docs", label:"Sugerencia o propuesta de mejora", prioridad:"Baja", resp:"Comité", accion:"consulta"},
+  {id:"otro", fam:"docs", label:"Otro (especificar en la descripción)", prioridad:"Media", resp:"Administración", accion:"ticket"},
+];
+const CATMAP = Object.fromEntries(CATS.map(c=>[c.id,c]));
+
+/* ---- Utilidades ---- */
+const norm = s => (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
+function fmtDate(iso){ if(!iso) return "—"; const d=new Date(iso); return d.toLocaleDateString("es-CL",{day:"2-digit",month:"short"})+" · "+d.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"}); }
+function relDays(iso){ if(!iso) return ""; const diff=(Date.now()-new Date(iso))/86400000; if(diff<1)return"hoy"; if(diff<2)return"ayer"; return `hace ${Math.floor(diff)} días`; }
+const prioClass = p => ({Emergencia:"p-emerg",Alta:"p-alta",Media:"p-media",Baja:"p-baja"}[p]);
+const statClass = s => ({Recibido:"s-recibido","En proceso":"s-proceso",Cerrado:"s-cerrado"}[s]);
+function Pill({kind,text}){ return <span className={"pill "+kind}><span className="pdot"></span>{text}</span>; }
+function resolveEdificio(query){
+  const q=norm(query); if(!q) return null;
+  const exact=EDIFICIOS.find(e=>norm(e)===q); if(exact) return exact;
+  const pref=EDIFICIOS.filter(e=>norm(e).startsWith(q)).sort((a,b)=>a.length-b.length); if(pref.length) return pref[0];
+  const inc=EDIFICIOS.filter(e=>norm(e).includes(q)).sort((a,b)=>a.length-b.length); if(inc.length) return inc[0];
+  return null;
+}
+
+/* =========================================================================
+   3 · CAPA DE DATOS  ·  Firestore
+   ========================================================================= */
+function mapDoc(d){ return {id:d.id, ...d.data()}; }
+
+function escucharTodos(cb, errCb){
+  return db.collection("casos").onSnapshot(
+    qs => cb(qs.docs.map(mapDoc)),
+    err => errCb && errCb(err)
+  );
+}
+function escucharMios(email, cb, errCb){
+  return db.collection("casos").where("email","==", email).onSnapshot(
+    qs => cb(qs.docs.map(mapDoc)),
+    err => errCb && errCb(err)
+  );
+}
+async function asegurarContador(){
+  const ref = db.collection("contadores").doc("casos");
+  const s = await ref.get();
+  if(!s.exists) await ref.set({ultimo:0});
+}
+async function crearCaso(base){
+  const uid = auth.currentUser.uid;
+  const nuevoRef = db.collection("casos").doc();
+  const contRef = db.collection("contadores").doc("casos");
+  const folio = await db.runTransaction(async tx=>{
+    const snap = await tx.get(contRef);
+    const ultimo = snap.exists ? (snap.data().ultimo||0) : 0;
+    const next = ultimo+1;
+    const f = "CF-2026-"+String(next).padStart(4,"0");
+    tx.set(contRef, {ultimo: next}, {merge:true});
+    tx.set(nuevoRef, {...base, folio:f, creadoPorUid:uid});
+    return f;
+  });
+  return {id:nuevoRef.id, folio};
+}
+async function actualizarCaso(id, patch){
+  await db.collection("casos").doc(id).update({...patch, updatedAt:new Date().toISOString()});
+}
+
+/* =========================================================================
+   4 · COMPONENTES REUTILIZABLES
+   ========================================================================= */
+function Field({label,req,err,hint,full,children}){
+  return <div className={"field"+(full?" full":"")}>
+    <label className="lbl">{label} {req&&<span className="req">*</span>} {hint&&<span className="hint" style={{fontWeight:400}}>· {hint}</span>}</label>
+    {children}{err&&<span className="hint" style={{color:"var(--emerg)"}}>{err}</span>}
+  </div>;
+}
+function EdificioInput({value,onResolve}){
+  const [text,setText]=useState(value||""); const [resolved,setResolved]=useState(value||null); const [msg,setMsg]=useState(null);
+  useEffect(()=>{ setText(value||""); setResolved(value||null); if(!value) setMsg(null); },[value]);
+  const doResolve=()=>{
+    if(text.trim()===""){ setResolved(null); setMsg(null); onResolve(""); return; }
+    const r=resolveEdificio(text);
+    if(r){ setText(r); setResolved(r); setMsg({ok:true,text:`Edificio reconocido: ${r}`}); onResolve(r); }
+    else { setResolved(null); setMsg({ok:false,text:"No encontramos un edificio con ese nombre. Revisa la escritura."}); onResolve(""); }
+  };
+  return (
+    <div className="ac-wrap">
+      <input className="ctrl" value={text} placeholder="Escribe el nombre de tu edificio…" autoComplete="off"
+        onChange={e=>{ setText(e.target.value); if(resolved||msg){ setResolved(null); setMsg(null); onResolve(""); } }}
+        onBlur={doResolve} onKeyDown={e=>{ if(e.key==="Enter"){ e.preventDefault(); e.target.blur(); } }}
+        style={resolved?{paddingRight:32}:null} />
+      {resolved && <span className="ac-ok">✓</span>}
+      {msg && <span className="hint" style={{color:msg.ok?"var(--cerrado)":"var(--emerg)"}}>{msg.text}</span>}
+    </div>
+  );
+}
+function MultiSelect({options,selected,onChange,label}){
+  const [open,setOpen]=useState(false); const [q,setQ]=useState(""); const ref=useRef(null);
+  useEffect(()=>{ const f=e=>{ if(ref.current&&!ref.current.contains(e.target)) setOpen(false); }; document.addEventListener("mousedown",f); return ()=>document.removeEventListener("mousedown",f); },[]);
+  const toggle=(o)=>onChange(selected.includes(o)?selected.filter(x=>x!==o):[...selected,o]);
+  const shown=options.filter(o=>norm(o).includes(norm(q)));
+  return (
+    <div className="ms-wrap" ref={ref}>
+      <button className={"ms-btn"+(selected.length?" on":"")} onClick={()=>setOpen(o=>!o)}>{label}: {selected.length===0?"Todos":selected.length+(selected.length===1?" edificio":" edificios")} ▾</button>
+      {open && (
+        <div className="ms-menu">
+          <input className="ctrl ms-search" placeholder="Buscar edificio…" value={q} onChange={e=>setQ(e.target.value)} />
+          <div className="ms-list">
+            {shown.map(o=><label key={o} className="ms-opt"><input type="checkbox" checked={selected.includes(o)} onChange={()=>toggle(o)} /> {o}</label>)}
+            {shown.length===0 && <div className="ac-empty">Sin coincidencias.</div>}
+          </div>
+          <div className="ms-foot"><button onClick={()=>onChange([])}>Limpiar</button><button onClick={()=>setOpen(false)}>Aplicar</button></div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* =========================================================================
+   5 · APP
+   ========================================================================= */
+function App(){
+  const [authReady,setAuthReady]=useState(false);
+  const [user,setUser]=useState(null);
+  const [role,setRole]=useState(null);          // "residente" | "admin" (elección de la pantalla inicial)
+  const [tickets,setTickets]=useState([]);
+  const [dataReady,setDataReady]=useState(false);
+  const [denied,setDenied]=useState(false);      // encargado no autorizado
+  const [linkSent,setLinkSent]=useState("");     // correo al que se envió el enlace
+  const [authError,setAuthError]=useState("");
+  const [view,setView]=useState("ingreso");
+  const [sel,setSel]=useState(null);
+  const [toasts,setToasts]=useState([]);
+
+  const toast=(msg,kind="ok")=>{ const id=Math.random(); setToasts(t=>[...t,{id,msg,kind}]); setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)),4200); };
+
+  // Rol preseleccionado desde el hash (#residente / #admin), p. ej. desde el QR.
+  useEffect(()=>{
+    const h=(location.hash||"").toLowerCase();
+    if(h.includes("admin")) setRole("admin"); else if(h.includes("resident")) setRole("residente");
+  },[]);
+
+  // Completar acceso por vínculo de correo / resultado de redirección Microsoft.
+  useEffect(()=>{
+    (async ()=>{
+      try{
+        if(auth.isSignInWithEmailLink(window.location.href)){
+          let email = window.localStorage.getItem("correoAcceso");
+          if(!email) email = window.prompt("Confirma tu correo para completar el acceso:");
+          if(email){
+            await auth.signInWithEmailLink(email, window.location.href);
+            window.localStorage.removeItem("correoAcceso");
+            setRole("residente");
+          }
+          history.replaceState(null,"", window.location.pathname);
+        } else {
+          await auth.getRedirectResult();
+        }
+      }catch(e){ setAuthError(traducirError(e)); }
+    })();
+  },[]);
+
+  // Estado de sesión.
+  useEffect(()=>{
+    return auth.onAuthStateChanged(u=>{ setUser(u); setAuthReady(true); });
+  },[]);
+
+  const esAdmin = user && user.providerData.some(p=>p.providerId==="microsoft.com");
+
+  // Suscripción a datos según el tipo de usuario.
+  useEffect(()=>{
+    if(!user){ setTickets([]); setDataReady(false); setDenied(false); return; }
+    setDataReady(false); setDenied(false);
+    let unsub;
+    if(esAdmin){
+      setView("portal");
+      asegurarContador().catch(()=>{});
+      unsub = escucharTodos(
+        list=>{ setTickets(list); setDataReady(true); },
+        err=>{ if(err && err.code==="permission-denied") setDenied(true); setDataReady(true); }
+      );
+    } else {
+      setView("ingreso");
+      unsub = escucharMios(
+        user.email,
+        list=>{ setTickets(list); setDataReady(true); },
+        ()=> setDataReady(true)
+      );
+    }
+    return ()=>{ if(unsub) unsub(); };
+  },[user, esAdmin]);
+
+  const salir=async()=>{ await auth.signOut(); setRole(null); setSel(null); setLinkSent(""); setAuthError(""); try{location.hash="";}catch(e){} };
+
+  const enviarEnlace=async(email)=>{
+    setAuthError("");
+    const acs={ url: window.location.origin + window.location.pathname + "#residente", handleCodeInApp:true };
+    try{
+      await auth.sendSignInLinkToEmail(email, acs);
+      window.localStorage.setItem("correoAcceso", email);
+      setLinkSent(email);
+    }catch(e){ setAuthError(traducirError(e)); }
+  };
+  const entrarMicrosoft=async()=>{
+    setAuthError("");
+    const provider=new firebase.auth.OAuthProvider("microsoft.com");
+    provider.setCustomParameters({ tenant: MS_TENANT });
+    try{ await auth.signInWithPopup(provider); }
+    catch(e){
+      if(e && (e.code==="auth/popup-blocked"||e.code==="auth/cancelled-popup-request"||e.code==="auth/popup-closed-by-user")){
+        try{ await auth.signInWithRedirect(provider); return; }catch(e2){ setAuthError(traducirError(e2)); return; }
+      }
+      setAuthError(traducirError(e));
+    }
+  };
+
+  // ---- Operaciones sobre casos ----
+  const submitCase=async(data)=>{
+    const cat=CATMAP[data.catId]; let prioridad=cat.prioridad;
+    if(data.emergencia && prioridad!=="Emergencia") prioridad="Emergencia";
+    const now=new Date().toISOString();
+    const base={ createdAt:now, updatedAt:now, edificio:data.edificio, unidad:data.unidad,
+      nombre:data.nombre, email:user.email, telefono:data.telefono||"",
+      catId:cat.id, familia:cat.fam, categoria:cat.label, prioridad, responsable:cat.resp, accion:cat.accion,
+      descripcion:data.descripcion, ubicacion:data.ubicacion||"", estatus:"Recibido", relacionadoCon:null,
+      hilo:[], acciones:[{tipo:"ingreso", detalle:`Caso ingresado y dirigido a ${cat.resp}.`, fecha:now}] };
+    try{ const r=await crearCaso(base); toast(`Caso ${r.folio} registrado correctamente.`); return r; }
+    catch(e){ toast("No se pudo registrar el caso. Intenta nuevamente.","error"); return null; }
+  };
+  const updateTicket=async(id,patch,logMsg,kind="info")=>{
+    const cur=tickets.find(t=>t.id===id);
+    if(cur && cur.estatus==="Cerrado"){ toast("Un caso cerrado no puede modificarse. Genera un caso relacionado.","warn"); return; }
+    try{ await actualizarCaso(id,patch); if(sel&&sel.ticket.id===id) setSel(s=>({...s,ticket:{...s.ticket,...patch}})); if(logMsg) toast(logMsg,kind); }
+    catch(e){ toast("No se pudo guardar el cambio.","error"); }
+  };
+  const crearRelacionado=async(orig,texto)=>{
+    const cat=CATMAP[orig.catId]; const now=new Date().toISOString();
+    const base={ createdAt:now, updatedAt:now, edificio:orig.edificio, unidad:orig.unidad,
+      nombre:orig.nombre, email:user.email, telefono:orig.telefono||"",
+      catId:orig.catId, familia:cat.fam, categoria:cat.label, prioridad:cat.prioridad, responsable:cat.resp, accion:"ticket",
+      descripcion:texto, ubicacion:orig.ubicacion||"", estatus:"Recibido", relacionadoCon:orig.folio, hilo:[],
+      acciones:[{tipo:"referencia", detalle:`Caso generado por disconformidad con el cierre del caso ${orig.folio}. Historial vinculado.`, fecha:now}] };
+    try{ const r=await crearCaso(base); toast(`Caso relacionado ${r.folio} creado y vinculado a ${orig.folio}.`); return {...base,id:r.id,folio:r.folio}; }
+    catch(e){ toast("No se pudo crear el caso relacionado.","error"); return null; }
+  };
+
+  /* ---- Render ---- */
+  if(!authReady) return <div className="loader">Cargando…</div>;
+
+  // Sin sesión: pantalla inicial y accesos.
+  if(!user){
+    if(!role) return <Landing choose={setRole} />;
+    if(role==="admin") return <AdminLogin onEntrar={entrarMicrosoft} onBack={()=>{setRole(null);setAuthError("");}} error={authError} />;
+    return <ResidentLogin onEnviar={enviarEnlace} enviado={linkSent} onBack={()=>{setRole(null);setLinkSent("");setAuthError("");}} error={authError} />;
+  }
+
+  // Encargado no autorizado (Microsoft válido pero no está en la lista de encargados).
+  if(esAdmin && denied) return <NoAutorizado email={user.email} onSalir={salir} />;
+
+  if(!dataReady) return <div className="loader">Cargando casos…</div>;
+
+  const findRelated=(folio)=> tickets.filter(t=>t.relacionadoCon===folio);
+  const abiertos=tickets.filter(t=>t.estatus!=="Cerrado").length;
+
+  return (
+    <div className="app">
+      <aside className="side">
+        <div className="brand">
+          <div className="mark">Cumbre Asesorías Ltda.</div>
+          <h1>Mesa de Casos</h1>
+          <div className="org">{esAdmin?"Administración":"Portal de residentes"}</div>
+        </div>
+        <nav className="nav">
+          {!esAdmin && <>
+            <NavBtn id="ingreso" cur={view} set={setView} ico="＋" label="Ingresar caso" />
+            <NavBtn id="miscasos" cur={view} set={setView} ico="≣" label="Mis casos" />
+          </>}
+          {esAdmin && <>
+            <NavBtn id="portal" cur={view} set={setView} ico="≡" label="Bandeja" badge={abiertos||null} />
+            <NavBtn id="panel" cur={view} set={setView} ico="▦" label="Panel" />
+            <NavBtn id="reglas" cur={view} set={setView} ico="▤" label="Reglas" />
+            <NavBtn id="ajustes" cur={view} set={setView} ico="⚙" label="Ajustes" />
+          </>}
+        </nav>
+        <div className="foot">
+          <div className="who">{esAdmin?(user.displayName||user.email):user.email}</div>
+          <button className="exit" onClick={salir}>Cerrar sesión</button>
+        </div>
+      </aside>
+
+      <main className="main">
+        <div className="content">
+          {!esAdmin && view==="ingreso" && <Ingreso submitCase={submitCase} email={user.email} goMisCasos={()=>setView("miscasos")} />}
+          {!esAdmin && view==="miscasos" && <MisCasos tickets={tickets} email={user.email} onOpen={t=>setSel({ticket:t,mode:"residente"})} />}
+          {esAdmin && view==="portal" && <Portal tickets={tickets} onOpen={t=>setSel({ticket:t,mode:"admin"})} />}
+          {esAdmin && view==="panel" && <Panel tickets={tickets} onOpen={t=>setSel({ticket:t,mode:"admin"})} goPortal={()=>setView("portal")} />}
+          {esAdmin && view==="reglas" && <Reglas />}
+          {esAdmin && view==="ajustes" && <Ajustes user={user} />}
+        </div>
+      </main>
+
+      {sel && <Detail entry={sel} onClose={()=>setSel(null)} update={updateTicket} crearRelacionado={crearRelacionado} related={findRelated(sel.ticket.folio)} openTicketByFolio={(f)=>{const t=tickets.find(x=>x.folio===f); if(t) setSel({ticket:t,mode:sel.mode});}} />}
+      <div className="toasts">{toasts.map(t=><div key={t.id} className={"toast "+t.kind}><span className="tk"></span><span>{t.msg}</span></div>)}</div>
+    </div>
+  );
+}
+
+function traducirError(e){
+  const c=e&&e.code||"";
+  if(c==="auth/unauthorized-domain") return "Esta dirección no está autorizada. Abre la app desde su URL publicada (Firebase Hosting).";
+  if(c==="auth/operation-not-allowed") return "El proveedor de acceso no está habilitado en Firebase.";
+  if(c==="auth/invalid-email") return "El correo no es válido.";
+  if(c==="auth/account-exists-with-different-credential") return "Ya existe una cuenta con ese correo usando otro método.";
+  return (e&&e.message) || "Ocurrió un error de autenticación.";
+}
+
+function NavBtn({id,cur,set,ico,label,badge}){
+  return <button className={cur===id?"active":""} onClick={()=>set(id)}><span className="ico" aria-hidden>{ico}</span><span>{label}</span>{badge?<span className="badge">{badge}</span>:null}</button>;
+}
+
+/* ========================= PANTALLAS DE ACCESO ========================= */
+function Landing({choose}){
+  return (
+    <div className="center-wrap"><div className="landing">
+      <div className="lead">
+        <div className="mark">Cumbre Asesorías Ltda.</div>
+        <h1>Mesa de Casos</h1>
+        <p>Canaliza, clasifica y resuelve las solicitudes de los residentes.</p>
+      </div>
+      <div className="role-cards">
+        <button className="role-card" onClick={()=>choose("residente")}>
+          <div className="rc-ic">🏠</div><h3>Soy residente</h3>
+          <p>Ingresa un caso a tu administración y sigue su estado. Entras con tu correo, sin contraseña.</p>
+          <span className="go">Entrar →</span>
+        </button>
+        <button className="role-card" onClick={()=>choose("admin")}>
+          <div className="rc-ic">🗂️</div><h3>Administración</h3>
+          <p>Gestiona los casos de todos los edificios. Acceso con tu cuenta corporativa de Microsoft.</p>
+          <span className="go">Iniciar sesión →</span>
+        </button>
+      </div>
+    </div></div>
+  );
+}
+
+function AdminLogin({onEntrar,onBack,error}){
+  return (
+    <div className="center-wrap"><div className="login-card">
+      <div className="mark" style={{fontSize:11,letterSpacing:".16em",textTransform:"uppercase",color:"var(--primary)",fontWeight:700}}>Administración</div>
+      <h2>Iniciar sesión</h2><div className="sub">Usa tu cuenta corporativa @cumbregi.com.</div>
+      <button className="msbtn" onClick={onEntrar}><span className="ms-logo"><i></i><i></i><i></i><i></i></span> Continuar con Microsoft</button>
+      {error && <div className="err-box">{error}</div>}
+      <button className="btn ghost block" onClick={onBack} style={{marginTop:12}}>← Volver</button>
+      <div className="note-info">Solo pueden ingresar las cuentas autorizadas en la lista de encargados. Si tu cuenta no está habilitada, contáctate con la administración.</div>
+    </div></div>
+  );
+}
+
+function ResidentLogin({onEnviar,enviado,onBack,error}){
+  const [email,setEmail]=useState(""); const [err,setErr]=useState("");
+  const enviar=()=>{ if(!/^\S+@\S+\.\S+$/.test(email)){ setErr("Ingresa un correo válido."); return; } setErr(""); onEnviar(email.trim().toLowerCase()); };
+  if(enviado){
+    return (
+      <div className="center-wrap"><div className="login-card">
+        <div className="conf" style={{padding:0}}><div className="ok" style={{margin:"0 auto 14px"}}>✉️</div></div>
+        <h2>Revisa tu correo</h2>
+        <div className="sub">Enviamos un enlace de acceso a <b>{enviado}</b>. Ábrelo desde este dispositivo para entrar. El enlace vence en poco tiempo por seguridad.</div>
+        <button className="btn ghost block" onClick={onBack}>← Volver</button>
+      </div></div>
+    );
+  }
+  return (
+    <div className="center-wrap"><div className="login-card">
+      <div className="mark" style={{fontSize:11,letterSpacing:".16em",textTransform:"uppercase",color:"var(--primary)",fontWeight:700}}>Portal de residentes</div>
+      <h2>Entrar</h2><div className="sub">Te enviaremos un enlace de acceso a tu correo. No necesitas contraseña.</div>
+      <Field label="Tu correo" req err={err}><input className="ctrl" type="email" placeholder="tu@correo.cl" value={email} onChange={e=>{setEmail(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&enviar()} /></Field>
+      <button className="btn primary block" onClick={enviar}>Enviarme el enlace</button>
+      {error && <div className="err-box">{error}</div>}
+      <button className="btn ghost block" onClick={onBack} style={{marginTop:10}}>← Volver</button>
+    </div></div>
+  );
+}
+
+function NoAutorizado({email,onSalir}){
+  return (
+    <div className="center-wrap"><div className="login-card">
+      <h2>Cuenta sin acceso</h2>
+      <div className="sub">La cuenta <b>{email}</b> inició sesión correctamente, pero no está en la lista de encargados autorizados. Pide que agreguen tu correo para acceder a la administración.</div>
+      <button className="btn primary block" onClick={onSalir}>Cerrar sesión</button>
+    </div></div>
+  );
+}
+
+/* ========================= INGRESO (RESIDENTE) ========================= */
+function Ingreso({submitCase,email,goMisCasos}){
+  const empty={edificio:"",unidad:"",nombre:"",telefono:"",fam:"",catId:"",descripcion:"",ubicacion:"",emergencia:false};
+  const [f,setF]=useState(empty); const [errors,setErrors]=useState({}); const [done,setDone]=useState(null); const [saving,setSaving]=useState(false);
+  const set=(k,v)=>setF(s=>({...s,[k]:v}));
+  const cat=f.catId?CATMAP[f.catId]:null; const catsOfFam=f.fam?CATS.filter(c=>c.fam===f.fam):[];
+  const prioridad=cat?(f.emergencia&&cat.prioridad!=="Emergencia"?"Emergencia":cat.prioridad):null;
+  const accionTxt={ticket:"Reclamo registrado y notificado al responsable",consulta:"Registro informativo para gestión"};
+
+  const submit=async()=>{
+    const er={};
+    ["unidad","nombre","fam","catId","descripcion"].forEach(k=>{ if(!f[k]) er[k]="Requerido"; });
+    if(!f.edificio) er.edificio="Selecciona un edificio válido";
+    setErrors(er); if(Object.keys(er).length) return;
+    setSaving(true); const r=await submitCase(f); setSaving(false);
+    if(r){ setDone(r); window.scrollTo({top:0,behavior:"smooth"}); }
+  };
+
+  if(done){
+    return (
+      <div className="card pad conf fadein">
+        <div className="ok">✓</div><h3>Recibimos tu caso</h3>
+        <p style={{color:"var(--muted)",margin:0}}>Guarda este folio para hacer seguimiento en «Mis casos».</p>
+        <div className="folio-lg">{done.folio}</div>
+        <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
+          <button className="btn primary" onClick={()=>{setDone(null);setF(empty);setErrors({});}}>Ingresar otro caso</button>
+          <button className="btn ghost" onClick={goMisCasos}>Ver mis casos</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="view-head"><div className="kicker">Portal de residentes</div><h2>Ingresar un caso</h2><p>Cuéntanos qué ocurre. El sistema clasifica tu caso, define la prioridad y lo dirige al responsable correcto de forma automática.</p></div>
+      <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) 300px",gap:22,alignItems:"start"}} className="ingreso-layout">
+        <div className="card pad">
+          <div className="sect-label">1 · Tus datos</div>
+          <div className="form-grid">
+            <Field label="Edificio" req err={errors.edificio} hint="Escríbelo; lo validamos al terminar">
+              <EdificioInput value={f.edificio} onResolve={v=>set("edificio",v)} />
+            </Field>
+            <Field label="Unidad / Depto" req err={errors.unidad}><input className="ctrl" placeholder="Ej: 1204" value={f.unidad} onChange={e=>set("unidad",e.target.value)} /></Field>
+            <Field label="Nombre" req err={errors.nombre}><input className="ctrl" value={f.nombre} onChange={e=>set("nombre",e.target.value)} /></Field>
+            <Field label="Correo" hint="Con este correo sigues tus casos"><input className="ctrl" type="email" value={email} disabled /></Field>
+            <Field label="Teléfono" hint="Opcional"><input className="ctrl" value={f.telefono} onChange={e=>set("telefono",e.target.value)} /></Field>
+          </div>
+          <div className="sect-label" style={{marginTop:8}}>2 · Motivo</div>
+          <div className="form-grid">
+            <Field label="Categoría general" req err={errors.fam}>
+              <select className="ctrl" value={f.fam} onChange={e=>{set("fam",e.target.value);set("catId","");}}><option value="">Selecciona…</option>{Object.entries(FAMILIAS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
+            </Field>
+            <Field label="Motivo específico" req err={errors.catId}>
+              <select className="ctrl" value={f.catId} onChange={e=>set("catId",e.target.value)} disabled={!f.fam}><option value="">{f.fam?"Selecciona…":"Elige primero una categoría"}</option>{catsOfFam.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</select>
+            </Field>
+          </div>
+          <Field label="Ubicación exacta" hint="Piso, ascensor, estacionamiento…" full><input className="ctrl" value={f.ubicacion} onChange={e=>set("ubicacion",e.target.value)} /></Field>
+          <Field label="Descripción" req err={errors.descripcion} full><textarea className="ctrl" placeholder="Describe el problema con el mayor detalle posible." value={f.descripcion} onChange={e=>set("descripcion",e.target.value)} /></Field>
+          <label className="check"><input type="checkbox" checked={f.emergencia} onChange={e=>set("emergencia",e.target.checked)} /><span className="t"><b>Es una situación de emergencia en curso</b><br/><span className="hint">Riesgo para las personas o el edificio. Elevaremos la prioridad al máximo.</span></span></label>
+          <div style={{display:"flex",justifyContent:"flex-end",marginTop:20}}><button className="btn primary" onClick={submit} disabled={saving}>{saving?"Enviando…":"Enviar caso"}</button></div>
+        </div>
+        <div className={"triage"+(cat?"":" empty")}>
+          <div className="th"><span className="dot"></span><h4>Clasificación automática</h4></div>
+          <div className="tb">
+            {!cat && <span>Al elegir el motivo verás aquí cómo se clasificará el caso: prioridad, responsable y qué hará el sistema.</span>}
+            {cat && <div className="fadein" key={f.catId+f.emergencia}>
+              <div className="trow"><span className="k">Área</span><span className="v">{FAMILIAS[cat.fam].label}</span></div>
+              <div className="trow"><span className="k">Prioridad</span><span className="v"><Pill kind={prioClass(prioridad)} text={prioridad} /></span></div>
+              <div className="trow"><span className="k">Responsable</span><span className="v">{cat.resp}</span></div>
+              <div className="trow"><span className="k">Acción</span><span className="v" style={{fontWeight:500,fontSize:13,color:"var(--muted)"}}>{accionTxt[cat.accion]||"Registro para gestión"}</span></div>
+            </div>}
+          </div>
+        </div>
+      </div>
+      <style>{`@media(max-width:900px){.ingreso-layout{grid-template-columns:1fr!important}}`}</style>
+    </div>
+  );
+}
+
+/* ========================= MIS CASOS (RESIDENTE) ========================= */
+function MisCasos({tickets,email,onOpen}){
+  const mine=[...tickets].sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt));
+  return (
+    <div>
+      <div className="view-head"><div className="kicker">Portal de residentes</div><h2>Mis casos</h2><p>Casos asociados a <b>{email}</b>.</p></div>
+      {mine.length===0
+        ? <div className="card"><div className="empty-state"><div className="em-ic">✧</div>Aún no tienes casos ingresados.<br/><span className="hint">Cuando ingreses uno, aparecerá aquí con su estado.</span></div></div>
+        : <div className="caselist">{mine.map(t=>(
+            <button key={t.id} className={"caserow "+(t.prioridad==="Emergencia"?"b-emerg":t.prioridad==="Alta"?"b-alta":"")} onClick={()=>onOpen(t)}>
+              <div><div className="folio mono">{t.folio}</div><div style={{marginTop:6}}><Pill kind={prioClass(t.prioridad)} text={t.prioridad} /></div></div>
+              <div><div className="tt">{t.categoria}</div><div className="meta">{t.edificio} · Depto {t.unidad} · {relDays(t.createdAt)}{t.relacionadoCon?" · relaciona "+t.relacionadoCon:""}</div></div>
+              <div className="rt"><Pill kind={statClass(t.estatus)} text={t.estatus} /></div>
+            </button>))}</div>}
+    </div>
+  );
+}
+
+/* ========================= BANDEJA (ADMIN) ========================= */
+function Portal({tickets,onOpen}){
+  const [fEstatus,setFEstatus]=useState("Abiertos"); const [fPrio,setFPrio]=useState("Todas"); const [fArea,setFArea]=useState("Todas"); const [q,setQ]=useState(""); const [eds,setEds]=useState([]);
+  const estatuses=["Abiertos","Recibido","En proceso","Cerrado","Todos"]; const prios=["Todas","Emergencia","Alta","Media","Baja"];
+  const list=useMemo(()=>tickets.filter(t=>{
+    if(fEstatus==="Abiertos" && t.estatus==="Cerrado") return false;
+    if(!["Abiertos","Todos"].includes(fEstatus) && t.estatus!==fEstatus) return false;
+    if(fPrio!=="Todas" && t.prioridad!==fPrio) return false;
+    if(fArea!=="Todas" && t.familia!==fArea) return false;
+    if(eds.length && !eds.includes(t.edificio)) return false;
+    if(q){ const s=((t.folio||"")+(t.nombre||"")+(t.categoria||"")+(t.edificio||"")+(t.unidad||"")+(t.descripcion||"")).toLowerCase(); if(!s.includes(q.toLowerCase())) return false; }
+    return true;
+  }),[tickets,fEstatus,fPrio,fArea,q,eds]);
+  const order={Emergencia:0,Alta:1,Media:2,Baja:3};
+  const sorted=[...list].sort((a,b)=>(order[a.prioridad]-order[b.prioridad])||(new Date(b.updatedAt)-new Date(a.updatedAt)));
+  return (
+    <div>
+      <div className="view-head"><div className="kicker">Administración</div><h2>Bandeja de casos</h2><p>Todos los edificios en una sola vista. Filtra por edificio, área, prioridad o estado; los casos abiertos aparecen primero por prioridad.</p></div>
+      <div className="filters">
+        {estatuses.map(s=><button key={s} className={"chip"+(fEstatus===s?" active":"")} onClick={()=>setFEstatus(s)}>{s}</button>)}
+        <div style={{width:1,height:22,background:"var(--line)"}}></div>
+        <MultiSelect options={EDIFICIOS} selected={eds} onChange={setEds} label="Edificios" />
+        <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={fArea} onChange={e=>setFArea(e.target.value)}><option value="Todas">Todas las áreas</option>{Object.entries(FAMILIAS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
+        <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={fPrio} onChange={e=>setFPrio(e.target.value)}>{prios.map(p=><option key={p}>{p==="Todas"?"Todas las prioridades":p}</option>)}</select>
+        <input className="ctrl search" placeholder="Buscar por folio, nombre, motivo…" value={q} onChange={e=>setQ(e.target.value)} />
+      </div>
+      <div className="hint" style={{marginBottom:12}}>{sorted.length} caso{sorted.length!==1?"s":""}{eds.length?` · ${eds.join(", ")}`:" · todos los edificios"}</div>
+      {sorted.length===0
+        ? <div className="card"><div className="empty-state"><div className="em-ic">✧</div>No hay casos con estos filtros.</div></div>
+        : <div className="caselist">{sorted.map(t=>(
+            <button key={t.id} className={"caserow "+(t.prioridad==="Emergencia"?"b-emerg":t.prioridad==="Alta"?"b-alta":"")} onClick={()=>onOpen(t)}>
+              <div><div className="folio mono">{t.folio}</div><div style={{marginTop:6}}><Pill kind={prioClass(t.prioridad)} text={t.prioridad} /></div></div>
+              <div><div className="tt">{t.categoria} {t.relacionadoCon&&<span className="ref-tag">↩ {t.relacionadoCon}</span>}</div><div className="meta">{t.edificio} · Depto {t.unidad} · {t.nombre} · {relDays(t.createdAt)}</div></div>
+              <div className="rt"><Pill kind={statClass(t.estatus)} text={t.estatus} /><span className="hint">{t.responsable}</span></div>
+            </button>))}</div>}
+    </div>
+  );
+}
+
+/* ========================= DETALLE ========================= */
+function Detail({entry,onClose,update,crearRelacionado,related,openTicketByFolio}){
+  const {ticket:t,mode}=entry; const isAdmin=mode==="admin"; const isClosed=t.estatus==="Cerrado";
+  const [resp,setResp]=useState(""); const [reabrir,setReabrir]=useState(false); const [reText,setReText]=useState("");
+  const addStaff=()=>{ if(!resp.trim())return; const patch={hilo:[...(t.hilo||[]),{autor:t.responsable,rol:"staff",mensaje:resp.trim(),fecha:new Date().toISOString()}]}; if(t.estatus==="Recibido")patch.estatus="En proceso"; update(t.id,patch,"Respuesta registrada.","ok"); setResp(""); };
+  const setStatus=(s)=>update(t.id,{estatus:s},`Estatus actualizado a «${s}».`,"info");
+  const doRelacionado=async()=>{ if(!reText.trim())return; const nt=await crearRelacionado(t,reText.trim()); setReabrir(false); setReText(""); if(nt) openTicketByFolio(nt.folio); };
+  return (
+    <div className="scrim" onClick={onClose}>
+      <div className="drawer" onClick={e=>e.stopPropagation()}>
+        <div className="dr-head"><div className="top">
+          <div>
+            <span className="folio mono" style={{color:"var(--muted)",fontSize:12}}>{t.folio}</span>
+            <h3>{t.categoria}</h3>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+              <Pill kind={prioClass(t.prioridad)} text={t.prioridad} /><Pill kind={statClass(t.estatus)} text={t.estatus} />
+              {t.relacionadoCon && <button className="ref-tag" onClick={()=>openTicketByFolio(t.relacionadoCon)}>↩ relaciona {t.relacionadoCon}</button>}
+            </div>
+          </div>
+          <button className="dr-close" onClick={onClose}>✕</button>
+        </div></div>
+        <div className="dr-body">
+          <dl className="kv">
+            <dt>Área</dt><dd>{FAMILIAS[t.familia].label}</dd>
+            <dt>Responsable</dt><dd>{t.responsable}</dd>
+            <dt>Edificio</dt><dd>{t.edificio}</dd>
+            <dt>Unidad</dt><dd className="mono">{t.unidad}</dd>
+            {isAdmin && <><dt>Solicitante</dt><dd>{t.nombre}</dd><dt>Contacto</dt><dd>{t.email}{t.telefono?" · "+t.telefono:""}</dd></>}
+            {t.ubicacion?<><dt>Ubicación</dt><dd>{t.ubicacion}</dd></>:null}
+            <dt>Ingresado</dt><dd>{fmtDate(t.createdAt)}</dd>
+          </dl>
+
+          {isAdmin && <>
+            <div className="block-title" style={{marginTop:0}}>Estatus del caso</div>
+            {isClosed
+              ? <div className="locknote"><span>🔒</span><span>Este caso está <b>cerrado</b>: no puede modificarse ni reabrirse. Si el problema persiste, el residente puede generar un caso relacionado que conserva el historial.</span></div>
+              : <div className="status-actions">{["Recibido","En proceso","Cerrado"].map(s=><button key={s} className={"btn sm"+(t.estatus===s?" primary":"")} onClick={()=>setStatus(s)}>{s}</button>)}</div>}
+            {!isClosed && <>
+              <div className="block-title">Responsable asignado</div>
+              <select className="ctrl" value={t.responsable} onChange={e=>update(t.id,{responsable:e.target.value},`Reasignado a ${e.target.value}.`,"info")}>{RESPONSABLES.map(r=><option key={r}>{r}</option>)}</select>
+            </>}
+          </>}
+
+          {related && related.length>0 && <>
+            <div className="block-title">Casos relacionados</div>
+            <div className="caselist">{related.map(r=>(
+              <button key={r.id} className="caserow" onClick={()=>openTicketByFolio(r.folio)}>
+                <div><div className="folio mono">{r.folio}</div></div>
+                <div><div className="tt" style={{fontSize:13}}>{r.categoria}</div><div className="meta">reapertura · {relDays(r.createdAt)}</div></div>
+                <div className="rt"><Pill kind={statClass(r.estatus)} text={r.estatus} /></div>
+              </button>))}</div>
+          </>}
+
+          <div className="block-title">Conversación</div>
+          <div className="thread">
+            <div className="msg"><div className="who"><span>{t.nombre}</span><span className="tm">{fmtDate(t.createdAt)}</span></div><div className="tx">{t.descripcion}</div></div>
+            {(t.hilo||[]).map((m,i)=><div key={i} className={"msg "+(m.rol==="staff"?"staff":"")}><div className="who"><span>{m.autor}{m.rol==="staff"?" · administración":""}</span><span className="tm">{fmtDate(m.fecha)}</span></div><div className="tx">{m.mensaje}</div></div>)}
+          </div>
+
+          {isClosed
+            ? (isAdmin
+                ? <div className="locknote" style={{marginTop:12}}><span>🔒</span><span>Conversación cerrada. No se pueden registrar más respuestas en este caso.</span></div>
+                : (related && related.length>0
+                    ? <div className="locknote" style={{marginTop:12}}><span>ℹ️</span><span>Este caso está cerrado. Ya existe un caso relacionado ({related.map(r=>r.folio).join(", ")}) que la administración está revisando.</span></div>
+                    : (!reabrir
+                        ? <div style={{marginTop:12}}><div className="locknote" style={{marginBottom:10}}><span>🔒</span><span>Este caso fue cerrado y no admite más mensajes. Si el problema no se resolvió, genera un caso relacionado que conserva el historial.</span></div><button className="btn" onClick={()=>setReabrir(true)}>El problema persiste · generar caso relacionado</button></div>
+                        : <div className="card pad" style={{marginTop:12,background:"#fff"}}><Field label="¿Qué sigue ocurriendo?" req><textarea className="ctrl" placeholder="Explica por qué consideras que el caso no está resuelto." value={reText} onChange={e=>setReText(e.target.value)} /></Field><div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><button className="btn ghost sm" onClick={()=>setReabrir(false)}>Cancelar</button><button className="btn primary sm" onClick={doRelacionado} disabled={!reText.trim()}>Generar caso relacionado</button></div></div>)))
+            : (isAdmin
+                ? <div style={{marginTop:12}}>
+                    <textarea className="ctrl" placeholder="Escribe una respuesta para el residente…" value={resp} onChange={e=>setResp(e.target.value)} style={{minHeight:80}} />
+                    <div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}><button className="btn primary sm" onClick={addStaff} disabled={!resp.trim()}>Registrar respuesta</button></div>
+                  </div>
+                : <div className="locknote" style={{marginTop:12}}><span>⏳</span><span>Tu caso está en gestión. Te avisaremos por aquí cuando la administración responda.</span></div>)}
+
+          {isAdmin && <>
+            <div className="block-title">Bitácora de acciones</div>
+            <ul className="log">{(t.acciones||[]).map((a,i)=><li key={i}><span className="lg-dot"></span><span>{a.detalle} · <span className="hint">{fmtDate(a.fecha)}</span></span></li>)}{(!t.acciones||t.acciones.length===0) && <li className="hint">Sin acciones registradas.</li>}</ul>
+          </>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ========================= PANEL (ADMIN) ========================= */
+function Panel({tickets,onOpen,goPortal}){
+  const [fEstatus,setFEstatus]=useState("Todos"); const [eds,setEds]=useState([]); const [fArea,setFArea]=useState("Todas"); const [fPrio,setFPrio]=useState("Todas");
+  const estatuses=["Todos","Abiertos","Recibido","En proceso","Cerrado"]; const prios=["Todas","Emergencia","Alta","Media","Baja"];
+  const filtered=useMemo(()=>tickets.filter(t=>{
+    if(fEstatus==="Abiertos" && t.estatus==="Cerrado") return false;
+    if(!["Abiertos","Todos"].includes(fEstatus) && t.estatus!==fEstatus) return false;
+    if(eds.length && !eds.includes(t.edificio)) return false;
+    if(fArea!=="Todas" && t.familia!==fArea) return false;
+    if(fPrio!=="Todas" && t.prioridad!==fPrio) return false;
+    return true;
+  }),[tickets,fEstatus,eds,fArea,fPrio]);
+  const total=filtered.length; const by=(k,v)=>filtered.filter(t=>t[k]===v).length;
+  const emergAbiertas=filtered.filter(t=>t.prioridad==="Emergencia"&&t.estatus!=="Cerrado").length;
+  const famCounts=Object.keys(FAMILIAS).map(k=>({k,label:FAMILIAS[k].label,n:filtered.filter(t=>t.familia===k).length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n);
+  const edCounts=EDIFICIOS.map(e=>({e,n:filtered.filter(t=>t.edificio===e).length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n);
+  const maxFam=Math.max(1,...famCounts.map(x=>x.n)); const maxEd=Math.max(1,...edCounts.map(x=>x.n));
+  const recientes=[...filtered].sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt)).slice(0,6);
+  const prioColor={Emergencia:"var(--emerg)",Alta:"var(--alta)",Media:"var(--media)",Baja:"var(--baja)"};
+  const clear=()=>{ setFEstatus("Todos"); setEds([]); setFArea("Todas"); setFPrio("Todas"); };
+  const active = fEstatus!=="Todos"||eds.length||fArea!=="Todas"||fPrio!=="Todas";
+
+  return (
+    <div>
+      <div className="view-head"><div className="kicker">Administración</div><h2>Panel general</h2><p>Vista consolidada de todos los edificios. Filtra por edificio, estado, área o prioridad y los indicadores se recalculan.</p></div>
+      <div className="filters">
+        {estatuses.map(s=><button key={s} className={"chip"+(fEstatus===s?" active":"")} onClick={()=>setFEstatus(s)}>{s}</button>)}
+        <div style={{width:1,height:22,background:"var(--line)"}}></div>
+        <MultiSelect options={EDIFICIOS} selected={eds} onChange={setEds} label="Edificios" />
+        <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={fArea} onChange={e=>setFArea(e.target.value)}><option value="Todas">Todas las áreas</option>{Object.entries(FAMILIAS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
+        <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={fPrio} onChange={e=>setFPrio(e.target.value)}>{prios.map(p=><option key={p}>{p==="Todas"?"Todas las prioridades":p}</option>)}</select>
+        {active && <button className="btn ghost sm" onClick={clear}>Limpiar filtros</button>}
+      </div>
+      <div className="kpis">
+        <div className="kpi"><div className="n">{total}</div><div className="l">Casos</div></div>
+        <div className="kpi"><div className="n">{by("estatus","Recibido")}</div><div className="l">Recibidos</div></div>
+        <div className="kpi"><div className="n">{by("estatus","En proceso")}</div><div className="l">En proceso</div></div>
+        <div className="kpi"><div className="n">{by("estatus","Cerrado")}</div><div className="l">Cerrados</div></div>
+        <div className={"kpi"+(emergAbiertas?" alert":"")}><div className="n">{emergAbiertas}</div><div className="l">Emergencias abiertas</div></div>
+      </div>
+      {total===0
+        ? <div className="card"><div className="empty-state"><div className="em-ic">✧</div>No hay casos con estos filtros.</div></div>
+        : <>
+          <div className="dash-grid">
+            <div className="card pad"><div className="block-title" style={{marginTop:0}}>Casos por edificio</div>{edCounts.map(x=><div className="bar-row" key={x.e}><div className="bl"><span className="bn">{x.e}</span><span className="bc">{x.n}</span></div><div className="bar"><span style={{width:(x.n/maxEd*100)+"%"}}></span></div></div>)}</div>
+            <div className="card pad"><div className="block-title" style={{marginTop:0}}>Casos por área</div>{famCounts.map(x=><div className="bar-row" key={x.k}><div className="bl"><span className="bn">{x.label}</span><span className="bc">{x.n}</span></div><div className="bar"><span style={{width:(x.n/maxFam*100)+"%"}}></span></div></div>)}</div>
+          </div>
+          <div className="dash-grid" style={{marginTop:18}}>
+            <div className="card pad"><div className="block-title" style={{marginTop:0}}>Por prioridad</div>{["Emergencia","Alta","Media","Baja"].map(p=><div className="bar-row" key={p}><div className="bl"><span className="bn">{p}</span><span className="bc">{by("prioridad",p)}</span></div><div className="bar"><span style={{width:(by("prioridad",p)/Math.max(1,total)*100)+"%",background:prioColor[p]}}></span></div></div>)}</div>
+            <div className="card pad"><div className="block-title" style={{marginTop:0}}>Por estatus</div>{["Recibido","En proceso","Cerrado"].map(s=><div className="bar-row" key={s}><div className="bl"><span className="bn">{s}</span><span className="bc">{by("estatus",s)}</span></div><div className="bar"><span style={{width:(by("estatus",s)/Math.max(1,total)*100)+"%",background:s==="Cerrado"?"var(--cerrado)":s==="En proceso"?"var(--proceso)":"var(--recibido)"}}></span></div></div>)}</div>
+          </div>
+          <div className="card" style={{marginTop:18}}>
+            <div className="pad" style={{paddingBottom:0,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div className="block-title" style={{margin:0}}>Actividad reciente</div><button className="btn sm ghost" onClick={goPortal}>Ver bandeja completa →</button></div>
+            <div className="caselist" style={{border:0,margin:"10px 0 0"}}>{recientes.map(t=><button key={t.id} className={"caserow "+(t.prioridad==="Emergencia"?"b-emerg":t.prioridad==="Alta"?"b-alta":"")} onClick={()=>onOpen(t)}>
+              <div><div className="folio mono">{t.folio}</div><div style={{marginTop:6}}><Pill kind={prioClass(t.prioridad)} text={t.prioridad} /></div></div>
+              <div><div className="tt">{t.categoria}</div><div className="meta">{t.edificio} · Depto {t.unidad} · actualizado {relDays(t.updatedAt)}</div></div>
+              <div className="rt"><Pill kind={statClass(t.estatus)} text={t.estatus} /></div>
+            </button>)}</div>
+          </div>
+        </>}
+    </div>
+  );
+}
+
+/* ========================= REGLAS (ADMIN) ========================= */
+function Reglas(){
+  const al={ticket:"Reclamo",consulta:"Consulta"};
+  return (
+    <div>
+      <div className="view-head"><div className="kicker">Configuración</div><h2>Reglas de tipificación</h2><p>Así clasifica el sistema cada caso: área, prioridad y responsable. Estas reglas viven en el bloque de configuración del archivo.</p></div>
+      {Object.entries(FAMILIAS).map(([k,v])=>{ const cs=CATS.filter(c=>c.fam===k); return (
+        <details className="rule-fam" key={k}>
+          <summary><span>{v.ico} {v.label}</span><span className="hint">{cs.length} motivos</span></summary>
+          <div className="rule-tbl"><div className="rr hd"><span>Motivo</span><span>Prioridad</span><span>Responsable</span><span>Acción</span></div>
+            {cs.map(c=><div className="rr" key={c.id}><span>{c.label}</span><span><Pill kind={prioClass(c.prioridad)} text={c.prioridad} /></span><span>{c.resp}</span><span className="hint" style={{fontWeight:600,color:"var(--ink)"}}>{al[c.accion]||"Gestión"}</span></div>)}</div>
+        </details>
+      );})}
+      <div className="note"><b>Fuentes de datos</b><br/>
+        Listado de edificios → archivo <b>reporte_comunidades_(fecha)</b>, hoja «Egresos - titular». Encargados autorizados → colección <b>encargados</b> en Firestore. Los casos se guardan en Firestore con respaldo y control de acceso por reglas de seguridad.</div>
+    </div>
+  );
+}
+
+/* ========================= AJUSTES (ADMIN) ========================= */
+function QRBlock(){
+  const [url,setUrl]=useState(""); const [gen,setGen]=useState(""); const [warn,setWarn]=useState(false); const ref=useRef(null);
+  const generate=()=>{ let u=url.trim(); if(!u){ setWarn(true); return;} setWarn(false); if(!u.includes("#")) u=u.replace(/\/+$/,"")+"#residente"; setGen(u); };
+  useEffect(()=>{ if(!gen||!ref.current) return; if(typeof QRCode==="undefined"){ ref.current.innerHTML="<span class='hint'>No se pudo cargar el generador de QR.</span>"; return; } ref.current.innerHTML=""; new QRCode(ref.current,{text:gen,width:200,height:200,correctLevel:QRCode.CorrectLevel.M}); },[gen]);
+  const download=()=>{ const c=ref.current&&ref.current.querySelector("canvas"); if(!c)return; const a=document.createElement("a"); a.href=c.toDataURL("image/png"); a.download="acceso-residentes-qr.png"; a.click(); };
+  return (
+    <div>
+      <p className="hint" style={{marginTop:0}}>Pega la URL pública de la Mesa de Casos. Generaremos un QR que abre directamente el acceso de residentes, para enviar por correo o publicar en cada edificio.</p>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"flex-end"}}>
+        <div style={{flex:1,minWidth:240}}><Field label="URL pública del portal"><input className="ctrl" placeholder="https://mesadecasos-650eb.web.app" value={url} onChange={e=>setUrl(e.target.value)} /></Field></div>
+        <button className="btn primary" onClick={generate} style={{marginBottom:16}}>Generar QR</button>
+      </div>
+      {warn && <span className="hint" style={{color:"var(--emerg)"}}>Ingresa la URL pública primero.</span>}
+      {gen && <div style={{marginTop:12}}>
+        <div className="qr-box"><div className="qr-render" ref={ref}></div><span className="mono hint" style={{maxWidth:220,wordBreak:"break-all",textAlign:"center"}}>{gen}</span></div>
+        <div style={{marginTop:12}}><button className="btn sm" onClick={download}>Descargar PNG</button></div>
+      </div>}
+    </div>
+  );
+}
+function Ajustes({user}){
+  return (
+    <div>
+      <div className="view-head"><div className="kicker">Administración</div><h2>Ajustes</h2><p>Sesión y difusión del acceso para residentes.</p></div>
+      <div className="card pad" style={{marginBottom:18}}>
+        <div className="block-title" style={{marginTop:0}}>Sesión</div>
+        <div className="hint">Conectado como <b style={{color:"var(--ink)"}}>{user.displayName||"—"}</b> · <span className="mono">{user.email}</span> · acceso Microsoft</div>
+      </div>
+      <div className="card pad">
+        <div className="block-title" style={{marginTop:0}}>Acceso de residentes (código QR)</div>
+        <QRBlock />
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

@@ -49,6 +49,25 @@
   .note-info{background:#EAF0FB;border:1px solid #CDDCF5;border-radius:var(--radius-s);padding:11px 13px;font-size:12.5px;color:#274672;margin-top:14px}
   .err-box{background:#FBE7E8;border:1px solid #F0C7C9;border-radius:var(--radius-s);padding:11px 13px;font-size:12.5px;color:#8E1319;margin-top:14px}
 
+  /* Advertencia de correo no deseado: deliberadamente imposible de pasar por alto. */
+  .warn-box{background:#FEF3C7;border:2px solid #D97706;border-radius:10px;padding:15px 16px;margin:16px 0}
+  .warn-box .wt{display:flex;gap:9px;align-items:center;font-weight:800;color:#92400E;font-size:13.5px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;line-height:1.3}
+  .warn-box .wt .wic{font-size:20px;line-height:1}
+  .warn-box p{margin:0 0 9px;font-size:13.5px;color:#78350F}
+  .warn-box p:last-child{margin-bottom:0}
+  .warn-box .sender{font-family:var(--mono);font-size:11.5px;background:#FDE68A;padding:4px 8px;border-radius:5px;display:inline-block;word-break:break-all;color:#713F12}
+  .warn-inline{background:#FEF3C7;border-left:3px solid #D97706;border-radius:6px;padding:9px 12px;font-size:12.5px;color:#78350F;margin-top:10px}
+
+  .adj-list{display:flex;flex-direction:column;gap:6px}
+  .adj-item{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:13px;color:var(--ink);text-decoration:none}
+  a.adj-item:hover{border-color:var(--primary);background:#F7FAFA}
+  .adj-ic{font-size:15px;flex:none}
+  .adj-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:560}
+  .adj-sz{font-size:11.5px;color:var(--muted-2);flex:none;font-variant-numeric:tabular-nums}
+  .adj-rm{border:0;background:#EDF1F1;color:var(--muted);width:24px;height:24px;border-radius:6px;font-size:12px;line-height:1;flex:none}
+  .adj-rm:hover{background:#FBE7E8;color:var(--emerg)}
+  input[type=file].ctrl{padding:9px 11px;font-size:13px}
+
   .app{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
   .side{background:var(--primary-strong);color:#DCEAEA;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
   .brand{padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08)}
@@ -178,11 +197,24 @@
   .log{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
   .log li{display:flex;gap:10px;font-size:12.5px;color:var(--muted);align-items:flex-start}
   .log .lg-dot{width:7px;height:7px;border-radius:50%;background:var(--primary);margin-top:5px;flex:none}
+  .log .lg-autor{color:var(--ink);font-weight:650}
+  .log .lg-meta{display:block;color:var(--muted-2);font-size:11.5px;margin-top:1px}
+
+  .edad{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:650;padding:2px 8px;border-radius:6px;white-space:nowrap}
+  .e-ok{background:#EDF1F1;color:#4C5A5E}
+  .e-med{background:#E2F0F6;color:#1C5C79}
+  .e-alt{background:#FBEEDF;color:#9A4B12}
+  .e-cri{background:#FBE7E8;color:#8E1319}
+  .sumtag{font-size:10.5px;font-weight:700;color:var(--primary);background:var(--primary-soft);padding:1px 6px;border-radius:5px;margin-left:5px}
+  .tiempos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:2px 0 6px}
+  .tiempo-card{border:1px solid var(--line);border-radius:9px;padding:11px 13px;background:#fff}
+  .tiempo-card .tl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted-2);font-weight:700}
+  .tiempo-card .tv{font-size:17px;font-weight:700;margin-top:3px;letter-spacing:-.01em}
   .status-actions{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px}
   .status-actions .btn{flex:1;min-width:110px}
   .locknote{background:#F4F7F7;border:1px dashed var(--line);border-radius:var(--radius-s);padding:11px 13px;font-size:12.5px;color:var(--muted);display:flex;gap:8px;align-items:flex-start}
 
-  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:22px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:14px;margin-bottom:22px}
   .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px}
   .kpi .n{font-size:30px;font-weight:720;letter-spacing:-.03em;line-height:1}
   .kpi .l{font-size:12px;color:var(--muted);margin-top:6px;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
@@ -252,6 +284,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
 
 <script type="text/babel">
@@ -273,6 +306,17 @@ const MS_TENANT = "51705270-efbc-4ca7-835b-593cb7517ca5";
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+const storage = firebase.storage();
+
+/* Adjuntos. Requieren Cloud Storage habilitado (plan Blaze).
+   Si no está habilitado, la app funciona igual: solo fallará al adjuntar. */
+const ADJ_MAX_ARCHIVOS = 5;
+const ADJ_MAX_MB = 10;
+const ADJ_TIPOS = ["image/", "application/pdf"];
+
+/* Remitente actual de los correos de acceso. Cámbialo si configuras dominio propio
+   (Authentication → Templates → personalizar dominio), p. ej. no-responder@cumbregi.com */
+const REMITENTE = "noreply@mesadecasos-650eb.firebaseapp.com";
 
 /* =========================================================================
    2 · DOMINIO  ·  taxonomía de casos (editable)
@@ -365,6 +409,42 @@ const CATMAP = Object.fromEntries(CATS.map(c=>[c.id,c]));
 const norm = s => (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
 function fmtDate(iso){ if(!iso) return "—"; const d=new Date(iso); return d.toLocaleDateString("es-CL",{day:"2-digit",month:"short"})+" · "+d.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"}); }
 function relDays(iso){ if(!iso) return ""; const diff=(Date.now()-new Date(iso))/86400000; if(diff<1)return"hoy"; if(diff<2)return"ayer"; return `hace ${Math.floor(diff)} días`; }
+
+/* ---- Tiempos y antigüedad ----
+   msCaso: cuánto duró (o lleva) un caso.
+   cadena: recorre 'relacionadoCon' hacia atrás hasta el caso original.
+   msAcumulado: suma las duraciones de toda la cadena. */
+function msCaso(t){
+  if(!t) return 0;
+  const fin = t.estatus==="Cerrado" ? new Date(t.cerradoEn || t.updatedAt).getTime() : Date.now();
+  return Math.max(0, fin - new Date(t.createdAt).getTime());
+}
+function cadenaCasos(t, porFolio, vistos){
+  vistos = vistos || new Set();
+  if(!t || vistos.has(t.folio)) return [];
+  vistos.add(t.folio);
+  const padre = t.relacionadoCon ? porFolio[t.relacionadoCon] : null;
+  return [...cadenaCasos(padre, porFolio, vistos), t];
+}
+function msAcumulado(t, porFolio){
+  return cadenaCasos(t, porFolio).reduce((s,c)=>s+msCaso(c), 0);
+}
+const dias = ms => ms/86400000;
+function fmtDur(ms){
+  const d = Math.floor(ms/86400000);
+  const h = Math.floor((ms%86400000)/3600000);
+  if(d<=0) return `${Math.max(1,h)} h`;
+  if(d===1) return "1 día";
+  return `${d} días`;
+}
+function edadClass(d){ if(d<1) return "e-ok"; if(d<4) return "e-med"; if(d<8) return "e-alt"; return "e-cri"; }
+const BUCKETS = [
+  {k:"Menos de 1 día", test:d=>d<1,            color:"var(--baja)"},
+  {k:"1 a 3 días",     test:d=>d>=1 && d<4,    color:"var(--media)"},
+  {k:"4 a 7 días",     test:d=>d>=4 && d<8,    color:"var(--alta)"},
+  {k:"8 a 15 días",    test:d=>d>=8 && d<16,   color:"#B4451A"},
+  {k:"Más de 15 días", test:d=>d>=16,          color:"var(--emerg)"},
+];
 const prioClass = p => ({Emergencia:"p-emerg",Alta:"p-alta",Media:"p-media",Baja:"p-baja"}[p]);
 const statClass = s => ({Recibido:"s-recibido","En proceso":"s-proceso",Cerrado:"s-cerrado"}[s]);
 function Pill({kind,text}){ return <span className={"pill "+kind}><span className="pdot"></span>{text}</span>; }
@@ -415,6 +495,26 @@ async function crearCaso(base){
 }
 async function actualizarCaso(id, patch){
   await db.collection("casos").doc(id).update({...patch, updatedAt:new Date().toISOString()});
+}
+
+/* ---- Adjuntos ---- */
+function validarArchivo(f){
+  if(f.size > ADJ_MAX_MB*1024*1024) return `«${f.name}» supera los ${ADJ_MAX_MB} MB.`;
+  if(!ADJ_TIPOS.some(t=>f.type.startsWith(t))) return `«${f.name}» no es una imagen ni un PDF.`;
+  return null;
+}
+async function subirAdjuntos(files, uid, onProgreso){
+  const out=[];
+  for(let i=0;i<files.length;i++){
+    const f=files[i];
+    if(onProgreso) onProgreso(i+1, files.length);
+    const seguro = f.name.replace(/[^\w.\- ]/g,"_");
+    const ref = storage.ref().child(`casos/${uid}/${Date.now()}-${i}-${seguro}`);
+    await ref.put(f, {contentType:f.type});
+    const url = await ref.getDownloadURL();
+    out.push({nombre:f.name, url, tipo:f.type, tamano:f.size});
+  }
+  return out;
 }
 
 /* =========================================================================
@@ -570,22 +670,40 @@ function App(){
   };
 
   // ---- Operaciones sobre casos ----
-  const submitCase=async(data)=>{
+  const submitCase=async(data, onProgreso)=>{
     const cat=CATMAP[data.catId]; let prioridad=cat.prioridad;
     if(data.emergencia && prioridad!=="Emergencia") prioridad="Emergencia";
     const now=new Date().toISOString();
+
+    let adjuntos=[];
+    if(data.archivos && data.archivos.length){
+      try{ adjuntos = await subirAdjuntos(data.archivos, user.uid, onProgreso); }
+      catch(e){
+        toast("No se pudieron subir los adjuntos. El almacenamiento de archivos aún no está habilitado.","error");
+        return null;
+      }
+    }
+
     const base={ createdAt:now, updatedAt:now, edificio:data.edificio, unidad:data.unidad,
       nombre:data.nombre, email:user.email, telefono:data.telefono||"",
       catId:cat.id, familia:cat.fam, categoria:cat.label, prioridad, responsable:cat.resp, accion:cat.accion,
       descripcion:data.descripcion, ubicacion:data.ubicacion||"", estatus:"Recibido", relacionadoCon:null,
-      hilo:[], acciones:[{tipo:"ingreso", detalle:`Caso ingresado y dirigido a ${cat.resp}.`, fecha:now}] };
+      adjuntos, hilo:[], acciones:[{tipo:"ingreso", detalle:`Caso ingresado y dirigido a ${cat.resp}.`, fecha:now, autor:data.nombre, autorEmail:user.email}] };
     try{ const r=await crearCaso(base); toast(`Caso ${r.folio} registrado correctamente.`); return r; }
     catch(e){ toast("No se pudo registrar el caso. Intenta nuevamente.","error"); return null; }
   };
-  const updateTicket=async(id,patch,logMsg,kind="info")=>{
+  const updateTicket=async(id,patch,logMsg,kind="info",detalleLog)=>{
     const cur=tickets.find(t=>t.id===id);
     if(cur && cur.estatus==="Cerrado"){ toast("Un caso cerrado no puede modificarse. Genera un caso relacionado.","warn"); return; }
-    try{ await actualizarCaso(id,patch); if(sel&&sel.ticket.id===id) setSel(s=>({...s,ticket:{...s.ticket,...patch}})); if(logMsg) toast(logMsg,kind); }
+    const full={...patch};
+    if(detalleLog){
+      full.acciones=[...((cur&&cur.acciones)||[]), {
+        tipo:"cambio", detalle:detalleLog, fecha:new Date().toISOString(),
+        autor:(user.displayName||user.email), autorEmail:user.email
+      }];
+    }
+    if(patch.estatus==="Cerrado") full.cerradoEn=new Date().toISOString();
+    try{ await actualizarCaso(id,full); if(sel&&sel.ticket.id===id) setSel(s=>({...s,ticket:{...s.ticket,...full}})); if(logMsg) toast(logMsg,kind); }
     catch(e){ toast("No se pudo guardar el cambio.","error"); }
   };
   const crearRelacionado=async(orig,texto)=>{
@@ -594,7 +712,7 @@ function App(){
       nombre:orig.nombre, email:user.email, telefono:orig.telefono||"",
       catId:orig.catId, familia:cat.fam, categoria:cat.label, prioridad:cat.prioridad, responsable:cat.resp, accion:"ticket",
       descripcion:texto, ubicacion:orig.ubicacion||"", estatus:"Recibido", relacionadoCon:orig.folio, hilo:[],
-      acciones:[{tipo:"referencia", detalle:`Caso generado por disconformidad con el cierre del caso ${orig.folio}. Historial vinculado.`, fecha:now}] };
+      acciones:[{tipo:"referencia", detalle:`Caso generado por disconformidad con el cierre del caso ${orig.folio}. Historial vinculado.`, fecha:now, autor:orig.nombre, autorEmail:user.email}] };
     try{ const r=await crearCaso(base); toast(`Caso relacionado ${r.folio} creado y vinculado a ${orig.folio}.`); return {...base,id:r.id,folio:r.folio}; }
     catch(e){ toast("No se pudo crear el caso relacionado.","error"); return null; }
   };
@@ -616,6 +734,7 @@ function App(){
 
   const findRelated=(folio)=> tickets.filter(t=>t.relacionadoCon===folio);
   const abiertos=tickets.filter(t=>t.estatus!=="Cerrado").length;
+  const porFolio=Object.fromEntries(tickets.map(t=>[t.folio,t]));
 
   return (
     <div className="app">
@@ -648,25 +767,43 @@ function App(){
           {!esAdmin && view==="ingreso" && <Ingreso submitCase={submitCase} email={user.email} goMisCasos={()=>setView("miscasos")} />}
           {!esAdmin && view==="miscasos" && <MisCasos tickets={tickets} email={user.email} onOpen={t=>setSel({ticket:t,mode:"residente"})} />}
           {esAdmin && view==="portal" && <Portal tickets={tickets} onOpen={t=>setSel({ticket:t,mode:"admin"})} />}
-          {esAdmin && view==="panel" && <Panel tickets={tickets} onOpen={t=>setSel({ticket:t,mode:"admin"})} goPortal={()=>setView("portal")} />}
+          {esAdmin && view==="panel" && <Panel tickets={tickets} porFolio={porFolio} onOpen={t=>setSel({ticket:t,mode:"admin"})} goPortal={()=>setView("portal")} />}
           {esAdmin && view==="reglas" && <Reglas />}
           {esAdmin && view==="ajustes" && <Ajustes user={user} />}
         </div>
       </main>
 
-      {sel && <Detail entry={sel} onClose={()=>setSel(null)} update={updateTicket} crearRelacionado={crearRelacionado} related={findRelated(sel.ticket.folio)} openTicketByFolio={(f)=>{const t=tickets.find(x=>x.folio===f); if(t) setSel({ticket:t,mode:sel.mode});}} />}
+      {sel && <Detail entry={sel} porFolio={porFolio} onClose={()=>setSel(null)} update={updateTicket} crearRelacionado={crearRelacionado} related={findRelated(sel.ticket.folio)} openTicketByFolio={(f)=>{const t=tickets.find(x=>x.folio===f); if(t) setSel({ticket:t,mode:sel.mode});}} />}
       <div className="toasts">{toasts.map(t=><div key={t.id} className={"toast "+t.kind}><span className="tk"></span><span>{t.msg}</span></div>)}</div>
     </div>
   );
 }
 
+const HOST = (typeof location!=="undefined") ? location.hostname : "";
+const ES_LOCAL = ["localhost","127.0.0.1"].includes(HOST);
+const SIN_HTTPS = (typeof location!=="undefined") && location.protocol==="http:" && !ES_LOCAL;
+
 function traducirError(e){
   const c=e&&e.code||"";
-  if(c==="auth/unauthorized-domain") return "Esta dirección no está autorizada. Abre la app desde su URL publicada (Firebase Hosting).";
+  if(c==="auth/unauthorized-domain") return `El dominio ${HOST} no está autorizado. Agrégalo en Firebase → Authentication → Configuración → Dominios autorizados.`;
+  if(c==="auth/quota-exceeded") return "Se alcanzó el límite diario de enlaces de acceso. El plan gratuito de Firebase permite solo 5 al día en todo el sistema. Para uso real hay que activar el plan Blaze (sube el límite a 25.000 diarios).";
+  if(c==="auth/too-many-requests") return "Demasiados intentos seguidos. Espera unos minutos e inténtalo de nuevo.";
   if(c==="auth/operation-not-allowed") return "El proveedor de acceso no está habilitado en Firebase.";
   if(c==="auth/invalid-email") return "El correo no es válido.";
   if(c==="auth/account-exists-with-different-credential") return "Ya existe una cuenta con ese correo usando otro método.";
   return (e&&e.message) || "Ocurrió un error de autenticación.";
+}
+
+/* Aviso: sin HTTPS el inicio de sesión no puede funcionar. */
+function AvisoHttps(){
+  if(!SIN_HTTPS) return null;
+  return (
+    <div className="warn-box">
+      <div className="wt"><span className="wic">🔒</span><span>Falta HTTPS en este sitio</span></div>
+      <p>Estás en <b>http://{HOST}</b>. El inicio de sesión solo funciona sobre <b>https</b>.</p>
+      <p>Si el sitio está en GitHub Pages, espera a que se emita el certificado y activa <b>Enforce HTTPS</b>. Luego entra por <span className="sender">https://{HOST}</span></p>
+    </div>
+  );
 }
 
 function NavBtn({id,cur,set,ico,label,badge}){
@@ -703,6 +840,7 @@ function AdminLogin({onEntrar,onBack,error}){
     <div className="center-wrap"><div className="login-card">
       <div className="mark" style={{fontSize:11,letterSpacing:".16em",textTransform:"uppercase",color:"var(--primary)",fontWeight:700}}>Administración</div>
       <h2>Iniciar sesión</h2><div className="sub">Usa tu cuenta corporativa @cumbregi.com.</div>
+      <AvisoHttps />
       <button className="msbtn" onClick={onEntrar}><span className="ms-logo"><i></i><i></i><i></i><i></i></span> Continuar con Microsoft</button>
       {error && <div className="err-box">{error}</div>}
       <button className="btn ghost block" onClick={onBack} style={{marginTop:12}}>← Volver</button>
@@ -719,7 +857,18 @@ function ResidentLogin({onEnviar,enviado,onBack,error}){
       <div className="center-wrap"><div className="login-card">
         <div className="conf" style={{padding:0}}><div className="ok" style={{margin:"0 auto 14px"}}>✉️</div></div>
         <h2>Revisa tu correo</h2>
-        <div className="sub">Enviamos un enlace de acceso a <b>{enviado}</b>. Ábrelo desde este dispositivo para entrar. El enlace vence en poco tiempo por seguridad.</div>
+        <div className="sub">Enviamos un enlace de acceso a <b>{enviado}</b>. Ábrelo desde este mismo dispositivo para entrar.</div>
+
+        <div className="warn-box">
+          <div className="wt"><span className="wic">⚠️</span><span>Revisa tu carpeta de spam o correo no deseado</span></div>
+          <p><b>El correo casi siempre llega ahí.</b> Si no lo ves en tu bandeja de entrada en un minuto, búscalo en <b>Spam</b>, <b>Correo no deseado</b> o <b>Promociones</b>.</p>
+          <p>Llega desde esta dirección:</p>
+          <p><span className="sender">{REMITENTE}</span></p>
+          <p>Cuando lo encuentres, marca <b>«No es spam»</b> y agrega el remitente a tus contactos. Así los próximos correos llegarán directo a tu bandeja.</p>
+        </div>
+
+        <div className="hint" style={{marginBottom:12}}>El enlace vence en poco tiempo por seguridad. Si expira, pide uno nuevo.</div>
+        <button className="btn" onClick={()=>onEnviar(enviado)} style={{width:"100%",marginBottom:8}}>Reenviar el enlace</button>
         <button className="btn ghost block" onClick={onBack}>← Volver</button>
       </div></div>
     );
@@ -728,8 +877,10 @@ function ResidentLogin({onEnviar,enviado,onBack,error}){
     <div className="center-wrap"><div className="login-card">
       <div className="mark" style={{fontSize:11,letterSpacing:".16em",textTransform:"uppercase",color:"var(--primary)",fontWeight:700}}>Portal de residentes</div>
       <h2>Entrar</h2><div className="sub">Te enviaremos un enlace de acceso a tu correo. No necesitas contraseña.</div>
+      <AvisoHttps />
       <Field label="Tu correo" req err={err}><input className="ctrl" type="email" placeholder="tu@correo.cl" value={email} onChange={e=>{setEmail(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&enviar()} /></Field>
       <button className="btn primary block" onClick={enviar}>Enviarme el enlace</button>
+      <div className="warn-inline"><b>Ojo:</b> el correo suele llegar a la carpeta de <b>spam o correo no deseado</b>. Revísala si no lo ves en tu bandeja.</div>
       {error && <div className="err-box">{error}</div>}
       <button className="btn ghost block" onClick={onBack} style={{marginTop:10}}>← Volver</button>
     </div></div>
@@ -760,17 +911,29 @@ function NoAutorizado({user,claims,denyInfo,onSalir}){
 function Ingreso({submitCase,email,goMisCasos}){
   const empty={edificio:"",unidad:"",nombre:"",telefono:"",fam:"",catId:"",descripcion:"",ubicacion:"",emergencia:false};
   const [f,setF]=useState(empty); const [errors,setErrors]=useState({}); const [done,setDone]=useState(null); const [saving,setSaving]=useState(false);
+  const [archivos,setArchivos]=useState([]); const [errFiles,setErrFiles]=useState(""); const [progreso,setProgreso]=useState(null);
   const set=(k,v)=>setF(s=>({...s,[k]:v}));
   const cat=f.catId?CATMAP[f.catId]:null; const catsOfFam=f.fam?CATS.filter(c=>c.fam===f.fam):[];
   const prioridad=cat?(f.emergencia&&cat.prioridad!=="Emergencia"?"Emergencia":cat.prioridad):null;
   const accionTxt={ticket:"Reclamo registrado y notificado al responsable",consulta:"Registro informativo para gestión"};
+
+  const onFiles=(e)=>{
+    const nuevos=Array.from(e.target.files||[]); e.target.value="";
+    if(!nuevos.length) return;
+    if(archivos.length+nuevos.length > ADJ_MAX_ARCHIVOS){ setErrFiles(`Puedes adjuntar hasta ${ADJ_MAX_ARCHIVOS} archivos.`); return; }
+    for(const n of nuevos){ const er=validarArchivo(n); if(er){ setErrFiles(er); return; } }
+    setErrFiles(""); setArchivos(a=>[...a,...nuevos]);
+  };
+  const quitar=(i)=>{ setArchivos(a=>a.filter((_,k)=>k!==i)); setErrFiles(""); };
 
   const submit=async()=>{
     const er={};
     ["unidad","nombre","fam","catId","descripcion"].forEach(k=>{ if(!f[k]) er[k]="Requerido"; });
     if(!f.edificio) er.edificio="Selecciona un edificio válido";
     setErrors(er); if(Object.keys(er).length) return;
-    setSaving(true); const r=await submitCase(f); setSaving(false);
+    setSaving(true);
+    const r=await submitCase({...f, archivos}, (n,total)=>setProgreso(`Subiendo adjunto ${n} de ${total}…`));
+    setSaving(false); setProgreso(null);
     if(r){ setDone(r); window.scrollTo({top:0,behavior:"smooth"}); }
   };
 
@@ -815,7 +978,27 @@ function Ingreso({submitCase,email,goMisCasos}){
           <Field label="Ubicación exacta" hint="Piso, ascensor, estacionamiento…" full><input className="ctrl" value={f.ubicacion} onChange={e=>set("ubicacion",e.target.value)} /></Field>
           <Field label="Descripción" req err={errors.descripcion} full><textarea className="ctrl" placeholder="Describe el problema con el mayor detalle posible." value={f.descripcion} onChange={e=>set("descripcion",e.target.value)} /></Field>
           <label className="check"><input type="checkbox" checked={f.emergencia} onChange={e=>set("emergencia",e.target.checked)} /><span className="t"><b>Es una situación de emergencia en curso</b><br/><span className="hint">Riesgo para las personas o el edificio. Elevaremos la prioridad al máximo.</span></span></label>
-          <div style={{display:"flex",justifyContent:"flex-end",marginTop:20}}><button className="btn primary" onClick={submit} disabled={saving}>{saving?"Enviando…":"Enviar caso"}</button></div>
+
+          <div className="sect-label" style={{marginTop:22}}>3 · Adjuntos</div>
+          <div className="field full">
+            <label className="lbl">Fotos o documentos <span className="hint" style={{fontWeight:400}}>· opcional · hasta {ADJ_MAX_ARCHIVOS} archivos de {ADJ_MAX_MB} MB · imágenes o PDF</span></label>
+            <input className="ctrl" type="file" multiple accept="image/*,application/pdf" onChange={onFiles} disabled={saving} />
+            {errFiles && <span className="hint" style={{color:"var(--emerg)"}}>{errFiles}</span>}
+            {archivos.length===0 && <span className="hint">Una foto del problema ayuda a resolverlo más rápido.</span>}
+            {archivos.length>0 && <div className="adj-list" style={{marginTop:9}}>
+              {archivos.map((a,i)=>(<div key={i} className="adj-item">
+                <span className="adj-ic">{a.type.startsWith("image/")?"🖼️":"📄"}</span>
+                <span className="adj-nm">{a.name}</span>
+                <span className="adj-sz">{(a.size/1048576).toFixed(1)} MB</span>
+                <button className="adj-rm" onClick={()=>quitar(i)} disabled={saving} aria-label={"Quitar "+a.name}>✕</button>
+              </div>))}
+            </div>}
+          </div>
+
+          <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",gap:12,marginTop:20}}>
+            {progreso && <span className="hint">{progreso}</span>}
+            <button className="btn primary" onClick={submit} disabled={saving}>{saving?(progreso?"Subiendo…":"Enviando…"):"Enviar caso"}</button>
+          </div>
         </div>
         <div className={"triage"+(cat?"":" empty")}>
           <div className="th"><span className="dot"></span><h4>Clasificación automática</h4></div>
@@ -886,18 +1069,25 @@ function Portal({tickets,onOpen}){
             <button key={t.id} className={"caserow "+(t.prioridad==="Emergencia"?"b-emerg":t.prioridad==="Alta"?"b-alta":"")} onClick={()=>onOpen(t)}>
               <div><div className="folio mono">{t.folio}</div><div style={{marginTop:6}}><Pill kind={prioClass(t.prioridad)} text={t.prioridad} /></div></div>
               <div><div className="tt">{t.categoria} {t.relacionadoCon&&<span className="ref-tag">↩ {t.relacionadoCon}</span>}</div><div className="meta">{t.edificio} · Depto {t.unidad} · {t.nombre} · {relDays(t.createdAt)}</div></div>
-              <div className="rt"><Pill kind={statClass(t.estatus)} text={t.estatus} /><span className="hint">{t.responsable}</span></div>
+              <div className="rt"><Pill kind={statClass(t.estatus)} text={t.estatus} />{t.estatus!=="Cerrado" && <span className={"edad "+edadClass(dias(msCaso(t)))}>{fmtDur(msCaso(t))}</span>}<span className="hint">{t.responsable}</span></div>
             </button>))}</div>}
     </div>
   );
 }
 
 /* ========================= DETALLE ========================= */
-function Detail({entry,onClose,update,crearRelacionado,related,openTicketByFolio}){
+function Detail({entry,porFolio,onClose,update,crearRelacionado,related,openTicketByFolio}){
   const {ticket:t,mode}=entry; const isAdmin=mode==="admin"; const isClosed=t.estatus==="Cerrado";
   const [resp,setResp]=useState(""); const [reabrir,setReabrir]=useState(false); const [reText,setReText]=useState("");
-  const addStaff=()=>{ if(!resp.trim())return; const patch={hilo:[...(t.hilo||[]),{autor:t.responsable,rol:"staff",mensaje:resp.trim(),fecha:new Date().toISOString()}]}; if(t.estatus==="Recibido")patch.estatus="En proceso"; update(t.id,patch,"Respuesta registrada.","ok"); setResp(""); };
-  const setStatus=(s)=>update(t.id,{estatus:s},`Estatus actualizado a «${s}».`,"info");
+  const propio=msCaso(t); const acumulado=msAcumulado(t, porFolio||{}); const enCadena=(porFolio&&t.relacionadoCon)?true:false;
+  const addStaff=()=>{
+    if(!resp.trim())return;
+    const patch={hilo:[...(t.hilo||[]),{autor:t.responsable,rol:"staff",mensaje:resp.trim(),fecha:new Date().toISOString()}]};
+    let detalle="Registró una respuesta al residente.";
+    if(t.estatus==="Recibido"){ patch.estatus="En proceso"; detalle="Registró una respuesta y pasó el caso a «En proceso»."; }
+    update(t.id,patch,"Respuesta registrada.","ok",detalle); setResp("");
+  };
+  const setStatus=(s)=>update(t.id,{estatus:s},`Estatus actualizado a «${s}».`,"info",`Cambió el estatus de «${t.estatus}» a «${s}».`);
   const doRelacionado=async()=>{ if(!reText.trim())return; const nt=await crearRelacionado(t,reText.trim()); setReabrir(false); setReText(""); if(nt) openTicketByFolio(nt.folio); };
   return (
     <div className="scrim" onClick={onClose}>
@@ -925,15 +1115,35 @@ function Detail({entry,onClose,update,crearRelacionado,related,openTicketByFolio
           </dl>
 
           {isAdmin && <>
-            <div className="block-title" style={{marginTop:0}}>Estatus del caso</div>
+            <div className="block-title" style={{marginTop:0}}>Tiempo transcurrido</div>
+            <div className="tiempos">
+              <div className="tiempo-card">
+                <div className="tl">{isClosed?"Duración del caso":"Abierto hace"}</div>
+                <div className="tv">{fmtDur(propio)}</div>
+              </div>
+              <div className="tiempo-card">
+                <div className="tl">Acumulado {enCadena?"(con cadena)":""}</div>
+                <div className="tv">{fmtDur(acumulado)}</div>
+              </div>
+            </div>
+            {enCadena && <div className="hint" style={{marginTop:-2,marginBottom:6}}>Suma el tiempo de este caso y el de los casos anteriores a los que hace referencia.</div>}
+
+            <div className="block-title">Estatus del caso</div>
             {isClosed
               ? <div className="locknote"><span>🔒</span><span>Este caso está <b>cerrado</b>: no puede modificarse ni reabrirse. Si el problema persiste, el residente puede generar un caso relacionado que conserva el historial.</span></div>
               : <div className="status-actions">{["Recibido","En proceso","Cerrado"].map(s=><button key={s} className={"btn sm"+(t.estatus===s?" primary":"")} onClick={()=>setStatus(s)}>{s}</button>)}</div>}
             {!isClosed && <>
               <div className="block-title">Responsable asignado</div>
-              <select className="ctrl" value={t.responsable} onChange={e=>update(t.id,{responsable:e.target.value},`Reasignado a ${e.target.value}.`,"info")}>{RESPONSABLES.map(r=><option key={r}>{r}</option>)}</select>
+              <select className="ctrl" value={t.responsable} onChange={e=>update(t.id,{responsable:e.target.value},`Reasignado a ${e.target.value}.`,"info",`Reasignó el caso de ${t.responsable} a ${e.target.value}.`)}>{RESPONSABLES.map(r=><option key={r}>{r}</option>)}</select>
             </>}
           </>}
+
+          {!isAdmin && <div className="tiempos" style={{gridTemplateColumns:"1fr"}}>
+            <div className="tiempo-card">
+              <div className="tl">{isClosed?"Duración del caso":"Tu caso lleva abierto"}</div>
+              <div className="tv">{fmtDur(propio)}</div>
+            </div>
+          </div>}
 
           {related && related.length>0 && <>
             <div className="block-title">Casos relacionados</div>
@@ -943,6 +1153,18 @@ function Detail({entry,onClose,update,crearRelacionado,related,openTicketByFolio
                 <div><div className="tt" style={{fontSize:13}}>{r.categoria}</div><div className="meta">reapertura · {relDays(r.createdAt)}</div></div>
                 <div className="rt"><Pill kind={statClass(r.estatus)} text={r.estatus} /></div>
               </button>))}</div>
+          </>}
+
+          {(t.adjuntos && t.adjuntos.length>0) && <>
+            <div className="block-title">Adjuntos</div>
+            <div className="adj-list">
+              {t.adjuntos.map((a,i)=>(
+                <a key={i} className="adj-item" href={a.url} target="_blank" rel="noopener noreferrer">
+                  <span className="adj-ic">{a.tipo&&a.tipo.startsWith("image/")?"🖼️":"📄"}</span>
+                  <span className="adj-nm">{a.nombre}</span>
+                  <span className="adj-sz">{(a.tamano/1048576).toFixed(1)} MB</span>
+                </a>))}
+            </div>
           </>}
 
           <div className="block-title">Conversación</div>
@@ -967,8 +1189,18 @@ function Detail({entry,onClose,update,crearRelacionado,related,openTicketByFolio
                 : <div className="locknote" style={{marginTop:12}}><span>⏳</span><span>Tu caso está en gestión. Te avisaremos por aquí cuando la administración responda.</span></div>)}
 
           {isAdmin && <>
-            <div className="block-title">Bitácora de acciones</div>
-            <ul className="log">{(t.acciones||[]).map((a,i)=><li key={i}><span className="lg-dot"></span><span>{a.detalle} · <span className="hint">{fmtDate(a.fecha)}</span></span></li>)}{(!t.acciones||t.acciones.length===0) && <li className="hint">Sin acciones registradas.</li>}</ul>
+            <div className="block-title">Registro de modificaciones</div>
+            <ul className="log">
+              {(t.acciones||[]).slice().reverse().map((a,i)=>(
+                <li key={i}><span className="lg-dot"></span>
+                  <span>
+                    {a.autor && <span className="lg-autor">{a.autor}</span>}{a.autor?" · ":""}{a.detalle}
+                    <span className="lg-meta">{fmtDate(a.fecha)}{a.autorEmail?" · "+a.autorEmail:""}</span>
+                  </span>
+                </li>))}
+              {(!t.acciones||t.acciones.length===0) && <li className="hint">Sin modificaciones registradas.</li>}
+            </ul>
+            <div className="hint" style={{marginTop:8}}>Visible solo para administración. El residente no ve este registro.</div>
           </>}
         </div>
       </div>
@@ -977,8 +1209,8 @@ function Detail({entry,onClose,update,crearRelacionado,related,openTicketByFolio
 }
 
 /* ========================= PANEL (ADMIN) ========================= */
-function Panel({tickets,onOpen,goPortal}){
-  const [fEstatus,setFEstatus]=useState("Todos"); const [eds,setEds]=useState([]); const [fArea,setFArea]=useState("Todas"); const [fPrio,setFPrio]=useState("Todas");
+function Panel({tickets,porFolio,onOpen,goPortal}){
+  const [fEstatus,setFEstatus]=useState("Todos"); const [eds,setEds]=useState([]); const [fArea,setFArea]=useState("Todas"); const [fPrio,setFPrio]=useState("Todas"); const [fUnidad,setFUnidad]=useState("");
   const estatuses=["Todos","Abiertos","Recibido","En proceso","Cerrado"]; const prios=["Todas","Emergencia","Alta","Media","Baja"];
   const filtered=useMemo(()=>tickets.filter(t=>{
     if(fEstatus==="Abiertos" && t.estatus==="Cerrado") return false;
@@ -986,8 +1218,19 @@ function Panel({tickets,onOpen,goPortal}){
     if(eds.length && !eds.includes(t.edificio)) return false;
     if(fArea!=="Todas" && t.familia!==fArea) return false;
     if(fPrio!=="Todas" && t.prioridad!==fPrio) return false;
+    if(fUnidad.trim() && !norm(t.unidad||"").includes(norm(fUnidad))) return false;
     return true;
-  }),[tickets,fEstatus,eds,fArea,fPrio]);
+  }),[tickets,fEstatus,eds,fArea,fPrio,fUnidad]);
+
+  // Antigüedad: solo tiene sentido sobre los casos abiertos.
+  const abiertosF=filtered.filter(t=>t.estatus!=="Cerrado");
+  const conEdad=abiertosF.map(t=>({t, acum:msAcumulado(t, porFolio||{}), propio:msCaso(t)}))
+                         .sort((a,b)=>b.acum-a.acum);
+  const promedioMs = conEdad.length ? conEdad.reduce((s,x)=>s+x.acum,0)/conEdad.length : 0;
+  const masAntiguo = conEdad.length ? conEdad[0] : null;
+  const bucketCounts = BUCKETS.map(b=>({...b, n:conEdad.filter(x=>b.test(dias(x.acum))).length}));
+  const maxBucket = Math.max(1, ...bucketCounts.map(x=>x.n));
+
   const total=filtered.length; const by=(k,v)=>filtered.filter(t=>t[k]===v).length;
   const emergAbiertas=filtered.filter(t=>t.prioridad==="Emergencia"&&t.estatus!=="Cerrado").length;
   const famCounts=Object.keys(FAMILIAS).map(k=>({k,label:FAMILIAS[k].label,n:filtered.filter(t=>t.familia===k).length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n);
@@ -995,8 +1238,8 @@ function Panel({tickets,onOpen,goPortal}){
   const maxFam=Math.max(1,...famCounts.map(x=>x.n)); const maxEd=Math.max(1,...edCounts.map(x=>x.n));
   const recientes=[...filtered].sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt)).slice(0,6);
   const prioColor={Emergencia:"var(--emerg)",Alta:"var(--alta)",Media:"var(--media)",Baja:"var(--baja)"};
-  const clear=()=>{ setFEstatus("Todos"); setEds([]); setFArea("Todas"); setFPrio("Todas"); };
-  const active = fEstatus!=="Todos"||eds.length||fArea!=="Todas"||fPrio!=="Todas";
+  const clear=()=>{ setFEstatus("Todos"); setEds([]); setFArea("Todas"); setFPrio("Todas"); setFUnidad(""); };
+  const active = fEstatus!=="Todos"||eds.length||fArea!=="Todas"||fPrio!=="Todas"||fUnidad.trim();
 
   return (
     <div>
@@ -1007,14 +1250,18 @@ function Panel({tickets,onOpen,goPortal}){
         <MultiSelect options={EDIFICIOS} selected={eds} onChange={setEds} label="Edificios" />
         <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={fArea} onChange={e=>setFArea(e.target.value)}><option value="Todas">Todas las áreas</option>{Object.entries(FAMILIAS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
         <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={fPrio} onChange={e=>setFPrio(e.target.value)}>{prios.map(p=><option key={p}>{p==="Todas"?"Todas las prioridades":p}</option>)}</select>
+        <input className="ctrl" style={{width:170,padding:"7px 10px"}} placeholder="Unidad / Depto…" value={fUnidad} onChange={e=>setFUnidad(e.target.value)} />
         {active && <button className="btn ghost sm" onClick={clear}>Limpiar filtros</button>}
       </div>
+      {eds.length===0 && fUnidad.trim() && <div className="hint" style={{marginTop:-6,marginBottom:12}}>Buscando la unidad «{fUnidad}» en todos los edificios. Selecciona un edificio para acotar.</div>}
       <div className="kpis">
         <div className="kpi"><div className="n">{total}</div><div className="l">Casos</div></div>
         <div className="kpi"><div className="n">{by("estatus","Recibido")}</div><div className="l">Recibidos</div></div>
         <div className="kpi"><div className="n">{by("estatus","En proceso")}</div><div className="l">En proceso</div></div>
         <div className="kpi"><div className="n">{by("estatus","Cerrado")}</div><div className="l">Cerrados</div></div>
         <div className={"kpi"+(emergAbiertas?" alert":"")}><div className="n">{emergAbiertas}</div><div className="l">Emergencias abiertas</div></div>
+        <div className="kpi"><div className="n" style={{fontSize:24}}>{conEdad.length?fmtDur(promedioMs):"—"}</div><div className="l">Antigüedad promedio</div></div>
+        <div className={"kpi"+(masAntiguo && dias(masAntiguo.acum)>=8?" alert":"")}><div className="n" style={{fontSize:24}}>{masAntiguo?fmtDur(masAntiguo.acum):"—"}</div><div className="l">Caso más antiguo</div></div>
       </div>
       {total===0
         ? <div className="card"><div className="empty-state"><div className="em-ic">✧</div>No hay casos con estos filtros.</div></div>
@@ -1027,6 +1274,33 @@ function Panel({tickets,onOpen,goPortal}){
             <div className="card pad"><div className="block-title" style={{marginTop:0}}>Por prioridad</div>{["Emergencia","Alta","Media","Baja"].map(p=><div className="bar-row" key={p}><div className="bl"><span className="bn">{p}</span><span className="bc">{by("prioridad",p)}</span></div><div className="bar"><span style={{width:(by("prioridad",p)/Math.max(1,total)*100)+"%",background:prioColor[p]}}></span></div></div>)}</div>
             <div className="card pad"><div className="block-title" style={{marginTop:0}}>Por estatus</div>{["Recibido","En proceso","Cerrado"].map(s=><div className="bar-row" key={s}><div className="bl"><span className="bn">{s}</span><span className="bc">{by("estatus",s)}</span></div><div className="bar"><span style={{width:(by("estatus",s)/Math.max(1,total)*100)+"%",background:s==="Cerrado"?"var(--cerrado)":s==="En proceso"?"var(--proceso)":"var(--recibido)"}}></span></div></div>)}</div>
           </div>
+          <div className="dash-grid" style={{marginTop:18}}>
+            <div className="card pad">
+              <div className="block-title" style={{marginTop:0}}>Casos abiertos por antigüedad</div>
+              {conEdad.length===0
+                ? <div className="hint">No hay casos abiertos con estos filtros.</div>
+                : bucketCounts.map(b=><div className="bar-row" key={b.k}>
+                    <div className="bl"><span className="bn">{b.k}</span><span className="bc">{b.n}</span></div>
+                    <div className="bar"><span style={{width:(b.n/maxBucket*100)+"%",background:b.color}}></span></div>
+                  </div>)}
+              <div className="hint" style={{marginTop:8}}>El tiempo acumula la cadena: si un caso hace referencia a uno anterior, suma ambos.</div>
+            </div>
+            <div className="card pad">
+              <div className="block-title" style={{marginTop:0}}>Abiertos más antiguos</div>
+              {conEdad.length===0
+                ? <div className="hint">Nada pendiente. Buen momento.</div>
+                : <div className="caselist" style={{border:0}}>
+                    {conEdad.slice(0,6).map(({t,acum,propio})=>(
+                      <button key={t.id} className={"caserow "+(t.prioridad==="Emergencia"?"b-emerg":t.prioridad==="Alta"?"b-alta":"")} onClick={()=>onOpen(t)}>
+                        <div><div className="folio mono">{t.folio}</div><div style={{marginTop:6}}><span className={"edad "+edadClass(dias(acum))}>{fmtDur(acum)}</span></div></div>
+                        <div><div className="tt" style={{fontSize:13.5}}>{t.categoria}{t.relacionadoCon&&<span className="sumtag">suma {t.relacionadoCon}</span>}</div>
+                          <div className="meta">{t.edificio} · Depto {t.unidad} · {t.responsable}</div></div>
+                        <div className="rt"><Pill kind={statClass(t.estatus)} text={t.estatus} /></div>
+                      </button>))}
+                  </div>}
+            </div>
+          </div>
+
           <div className="card" style={{marginTop:18}}>
             <div className="pad" style={{paddingBottom:0,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div className="block-title" style={{margin:0}}>Actividad reciente</div><button className="btn sm ghost" onClick={goPortal}>Ver bandeja completa →</button></div>
             <div className="caselist" style={{border:0,margin:"10px 0 0"}}>{recientes.map(t=><button key={t.id} className={"caserow "+(t.prioridad==="Emergencia"?"b-emerg":t.prioridad==="Alta"?"b-alta":"")} onClick={()=>onOpen(t)}>
@@ -1069,7 +1343,7 @@ function QRBlock(){
     <div>
       <p className="hint" style={{marginTop:0}}>Pega la URL pública de la Mesa de Casos. Generaremos un QR que abre directamente el acceso de residentes, para enviar por correo o publicar en cada edificio.</p>
       <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"flex-end"}}>
-        <div style={{flex:1,minWidth:240}}><Field label="URL pública del portal"><input className="ctrl" placeholder="https://mesadecasos-650eb.web.app" value={url} onChange={e=>setUrl(e.target.value)} /></Field></div>
+        <div style={{flex:1,minWidth:240}}><Field label="URL pública del portal"><input className="ctrl" placeholder="https://www.cumbregi.com/casos" value={url} onChange={e=>setUrl(e.target.value)} /></Field></div>
         <button className="btn primary" onClick={generate} style={{marginBottom:16}}>Generar QR</button>
       </div>
       {warn && <span className="hint" style={{color:"var(--emerg)"}}>Ingresa la URL pública primero.</span>}

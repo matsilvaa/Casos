@@ -353,8 +353,14 @@ const REMITENTE = "noreply@mesadecasos-650eb.firebaseapp.com";
    ========================================================================= */
 const RESPONSABLES = ["Administración","Conserjería","Mantención","Aseo","Seguridad","Cobranzas","Comité"];
 
-// En producción, este listado se obtiene del archivo reporte_comunidades_(fecha), hoja "Egresos - titular".
-const EDIFICIOS = ["Capri","Ibsen","Portofino","Bremen","Rampa","Capitán Wood","Andes","Pacífico","Mirador","Alameda","Bilbao","Los Leones","Kennedy Norte","San Damián"];
+/* Solo estos correos pueden editar los edificios y las reglas de tipificación.
+   El resto de los encargados las ve, pero no las modifica. */
+const ADMIN_SISTEMA = ["matias@cumbregi.com","ramon@cumbregi.com"];
+
+/* Edificios y tipificación viven en Firestore (colección 'edificios' y documento 'config/tipificacion').
+   Estos valores son solo el respaldo inicial, si la base todavía está vacía. */
+let EDIFICIOS = ["Capri","Ibsen","Portofino","Bremen","Rampa","Capitán Wood","Andes","Pacífico","Mirador","Alameda","Bilbao","Los Leones","Kennedy Norte","San Damián"];
+const EDIFICIOS_DEFECTO = EDIFICIOS.slice();
 
 const FAMILIAS = {
   seguridad:{label:"Seguridad y emergencias", ico:"🛡️"},
@@ -367,7 +373,7 @@ const FAMILIAS = {
   docs:{label:"Documentos y solicitudes", ico:"🗂️"},
 };
 
-const CATS = [
+let CATS = [
   {id:"fuga_gas", fam:"seguridad", label:"Detección de fuga de gas", prioridad:"Emergencia", resp:"Seguridad", accion:"ticket"},
   {id:"atrapado", fam:"seguridad", label:"Persona atrapada en ascensor", prioridad:"Emergencia", resp:"Seguridad", accion:"ticket"},
   {id:"incendio", fam:"seguridad", label:"Alarma o riesgo de incendio", prioridad:"Emergencia", resp:"Seguridad", accion:"ticket"},
@@ -433,7 +439,10 @@ const CATS = [
   {id:"sugerencia", fam:"docs", label:"Sugerencia o propuesta de mejora", prioridad:"Baja", resp:"Comité", accion:"consulta"},
   {id:"otro", fam:"docs", label:"Otro (especificar en la descripción)", prioridad:"Media", resp:"Administración", accion:"ticket"},
 ];
-const CATMAP = Object.fromEntries(CATS.map(c=>[c.id,c]));
+let CATMAP = Object.fromEntries(CATS.map(c=>[c.id,c]));
+const CATS_DEFECTO = CATS.slice();
+function aplicarCats(nuevos){ CATS = nuevos; CATMAP = Object.fromEntries(CATS.map(c=>[c.id,c])); }
+function aplicarEdificios(nombres){ EDIFICIOS = nombres.slice(); }
 
 /* ---- Utilidades ---- */
 const norm = s => (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
@@ -527,6 +536,30 @@ async function actualizarCaso(id, patch){
   await db.collection("casos").doc(id).update({...patch, updatedAt:new Date().toISOString()});
 }
 
+/* ---- Datos maestros: edificios y reglas de tipificación ---- */
+const slug = s => norm(s).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+
+async function cargarEdificios(){
+  const qs = await db.collection("edificios").get();
+  return qs.docs.map(d=>({id:d.id, nombre:(d.data().nombre||d.id)}))
+                .sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+}
+async function agregarEdificio(nombre){
+  const n = nombre.trim(); if(!n) return;
+  await db.collection("edificios").doc(slug(n)).set({nombre:n});
+}
+async function borrarEdificio(id){ await db.collection("edificios").doc(id).delete(); }
+
+async function cargarTipificacion(){
+  const s = await db.collection("config").doc("tipificacion").get();
+  if(s.exists && Array.isArray(s.data().cats) && s.data().cats.length) return s.data().cats;
+  return null;
+}
+async function guardarTipificacion(cats, autor){
+  await db.collection("config").doc("tipificacion")
+    .set({cats, actualizadoEn:new Date().toISOString(), actualizadoPor:autor});
+}
+
 /* ---- Adjuntos ---- */
 function validarArchivo(f){
   if(f.size > ADJ_MAX_MB*1024*1024) return `«${f.name}» supera los ${ADJ_MAX_MB} MB.`;
@@ -614,6 +647,8 @@ function App(){
   const [authError,setAuthError]=useState("");
   const [view,setView]=useState("ingreso");
   const [preEdificio,setPreEdificio]=useState(null);
+  const [maestros,setMaestros]=useState(false);
+  const [ver,setVer]=useState(0);   // fuerza redibujo cuando cambian los datos maestros
   const [sel,setSel]=useState(null);
   const [toasts,setToasts]=useState([]);
 
@@ -654,8 +689,20 @@ function App(){
 
   // Suscripción a datos según el tipo de usuario.
   useEffect(()=>{
-    if(!user){ setTickets([]); setDataReady(false); setDenied(false); return; }
+    if(!user){ setTickets([]); setDataReady(false); setDenied(false); setMaestros(false); return; }
     setDataReady(false); setDenied(false);
+
+    // Datos maestros: si la base está vacía, seguimos con los valores por defecto del archivo.
+    (async()=>{
+      try{
+        const eds = await cargarEdificios();
+        if(eds.length) aplicarEdificios(eds.map(e=>e.nombre));
+        const cats = await cargarTipificacion();
+        if(cats) aplicarCats(cats);
+      }catch(e){ /* sin permisos o sin conexión: se usan los valores por defecto */ }
+      setMaestros(true);
+    })();
+
     let unsub;
     if(esAdmin){
       setView("portal");
@@ -761,7 +808,7 @@ function App(){
   // Encargado no autorizado (Microsoft válido pero no está en la lista de encargados).
   if(esAdmin && denied) return <NoAutorizado user={user} claims={claims} denyInfo={denyInfo} onSalir={salir} />;
 
-  if(!dataReady) return <div className="loader">Cargando casos…</div>;
+  if(!dataReady || !maestros) return <div className="loader">Cargando casos…</div>;
 
   const findRelated=(folio)=> tickets.filter(t=>t.relacionadoCon===folio);
   const abiertos=tickets.filter(t=>t.estatus!=="Cerrado").length;
@@ -786,7 +833,7 @@ function App(){
             <NavBtn id="portal" cur={view} set={navegar} ico="≡" label="Bandeja" badge={abiertos||null} />
             <NavBtn id="panel" cur={view} set={navegar} ico="▦" label="Panel" />
             <NavBtn id="edificios" cur={view} set={navegar} ico="▩" label="Por edificio" />
-            <NavBtn id="reglas" cur={view} set={navegar} ico="▤" label="Reglas" />
+            <NavBtn id="reglas" cur={view} set={navegar} ico="▤" label="Configuración" />
             <NavBtn id="ajustes" cur={view} set={navegar} ico="⚙" label="Ajustes" />
           </>}
         </nav>
@@ -803,7 +850,7 @@ function App(){
           {esAdmin && view==="portal" && <Portal tickets={tickets} porFolio={porFolio} initEd={preEdificio} onOpen={t=>setSel({ticket:t,mode:"admin"})} />}
           {esAdmin && view==="panel" && <Panel tickets={tickets} porFolio={porFolio} onOpen={t=>setSel({ticket:t,mode:"admin"})} goPortal={()=>navegar("portal")} />}
           {esAdmin && view==="edificios" && <PanelEdificios tickets={tickets} porFolio={porFolio} verCasos={verCasosEdificio} />}
-          {esAdmin && view==="reglas" && <Reglas />}
+          {esAdmin && view==="reglas" && <Configuracion user={user} puedeEditar={ADMIN_SISTEMA.includes(norm(user.email))} onCambio={()=>setVer(v=>v+1)} ver={ver} toast={toast} />}
           {esAdmin && view==="ajustes" && <Ajustes user={user} />}
         </div>
       </main>
@@ -1461,20 +1508,216 @@ function PanelEdificios({tickets,porFolio,verCasos}){
 }
 
 /* ========================= REGLAS (ADMIN) ========================= */
-function Reglas(){
-  const al={ticket:"Reclamo",consulta:"Consulta"};
+function Configuracion({user,puedeEditar,onCambio,ver,toast}){
+  const [tab,setTab]=useState("tipificacion");
   return (
     <div>
-      <div className="view-head"><div className="kicker">Configuración</div><h2>Reglas de tipificación</h2><p>Así clasifica el sistema cada caso: área, prioridad y responsable. Estas reglas viven en el bloque de configuración del archivo.</p></div>
-      {Object.entries(FAMILIAS).map(([k,v])=>{ const cs=CATS.filter(c=>c.fam===k); return (
-        <details className="rule-fam" key={k}>
-          <summary><span>{v.ico} {v.label}</span><span className="hint">{cs.length} motivos</span></summary>
-          <div className="rule-tbl"><div className="rr hd"><span>Motivo</span><span>Prioridad</span><span>Responsable</span><span>Acción</span></div>
-            {cs.map(c=><div className="rr" key={c.id}><span>{c.label}</span><span><Pill kind={prioClass(c.prioridad)} text={c.prioridad} /></span><span>{c.resp}</span><span className="hint" style={{fontWeight:600,color:"var(--ink)"}}>{al[c.accion]||"Gestión"}</span></div>)}</div>
-        </details>
-      );})}
-      <div className="note"><b>Fuentes de datos</b><br/>
-        Listado de edificios → archivo <b>reporte_comunidades_(fecha)</b>, hoja «Egresos - titular». Encargados autorizados → colección <b>encargados</b> en Firestore. Los casos se guardan en Firestore con respaldo y control de acceso por reglas de seguridad.</div>
+      <div className="view-head"><div className="kicker">Configuración</div><h2>Reglas y edificios</h2>
+        <p>Estos datos viven en la base de datos, no en el archivo: los cambios se aplican de inmediato para todos, sin volver a publicar la app.</p></div>
+
+      <div className="filters">
+        <button className={"chip"+(tab==="tipificacion"?" active":"")} onClick={()=>setTab("tipificacion")}>Tipificación</button>
+        <button className={"chip"+(tab==="edificios"?" active":"")} onClick={()=>setTab("edificios")}>Edificios</button>
+      </div>
+
+      {!puedeEditar && <div className="note" style={{marginTop:0,marginBottom:18}}>
+        <b>Solo lectura.</b> La edición está reservada a los administradores del sistema
+        (<span className="mono">{ADMIN_SISTEMA.join(" · ")}</span>). Puedes consultar las reglas, pero no modificarlas.</div>}
+
+      {tab==="tipificacion" ? <Tipificacion user={user} puedeEditar={puedeEditar} onCambio={onCambio} toast={toast} />
+                            : <Edificios user={user} puedeEditar={puedeEditar} onCambio={onCambio} toast={toast} />}
+    </div>
+  );
+}
+
+/* ---- Tipificación editable ---- */
+function Tipificacion({user,puedeEditar,onCambio,toast}){
+  const [cats,setCats]=useState(()=>CATS.map(c=>({...c})));
+  const [sucio,setSucio]=useState(false); const [guardando,setGuardando]=useState(false);
+  const al={ticket:"Reclamo",consulta:"Consulta"};
+
+  const editar=(id,campo,valor)=>{ setCats(cs=>cs.map(c=>c.id===id?{...c,[campo]:valor}:c)); setSucio(true); };
+  const eliminar=(id)=>{ setCats(cs=>cs.filter(c=>c.id!==id)); setSucio(true); };
+  const agregar=(fam)=>{
+    const id="m"+Math.random().toString(36).slice(2,9);
+    setCats(cs=>[...cs,{id,fam,label:"",prioridad:"Media",resp:"Administración",accion:"ticket"}]);
+    setSucio(true);
+  };
+  const guardar=async()=>{
+    if(cats.some(c=>!c.label.trim())){ toast("Hay motivos sin nombre. Complétalos o elimínalos.","warn"); return; }
+    setGuardando(true);
+    try{
+      await guardarTipificacion(cats.map(c=>({...c,label:c.label.trim()})), user.email);
+      aplicarCats(cats.map(c=>({...c})));
+      setSucio(false); onCambio(); toast("Reglas de tipificación actualizadas.");
+    }catch(e){ toast("No se pudieron guardar las reglas. ¿Tienes permisos de administrador del sistema?","error"); }
+    setGuardando(false);
+  };
+  const restablecer=()=>{ setCats(CATS_DEFECTO.map(c=>({...c}))); setSucio(true); toast("Valores por defecto cargados. Recuerda guardar.","info"); };
+
+  return (
+    <div>
+      {puedeEditar && <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:16,flexWrap:"wrap"}}>
+        <button className="btn primary" onClick={guardar} disabled={!sucio||guardando}>{guardando?"Guardando…":"Guardar cambios"}</button>
+        {sucio && <span className="hint" style={{color:"var(--alta)"}}>Tienes cambios sin guardar.</span>}
+        <button className="btn ghost sm" onClick={restablecer} style={{marginLeft:"auto"}}>Cargar valores por defecto</button>
+      </div>}
+
+      {Object.entries(FAMILIAS).map(([k,v])=>{
+        const cs=cats.filter(c=>c.fam===k);
+        return (
+          <details className="rule-fam" key={k}>
+            <summary><span>{v.ico} {v.label}</span><span className="hint">{cs.length} motivos</span></summary>
+            <div className="rule-tbl">
+              <div className="rr hd"><span>Motivo</span><span>Prioridad</span><span>Responsable</span><span>{puedeEditar?"Acción":"Tipo"}</span></div>
+              {cs.map(c=> puedeEditar
+                ? <div className="rr" key={c.id} style={{gridTemplateColumns:"1fr 118px 140px 116px 34px"}}>
+                    <input className="ctrl" style={{padding:"6px 9px",fontSize:13}} value={c.label} placeholder="Nombre del motivo" onChange={e=>editar(c.id,"label",e.target.value)} />
+                    <select className="ctrl" style={{padding:"6px 8px",fontSize:12.5}} value={c.prioridad} onChange={e=>editar(c.id,"prioridad",e.target.value)}>
+                      {["Emergencia","Alta","Media","Baja"].map(p=><option key={p}>{p}</option>)}
+                    </select>
+                    <select className="ctrl" style={{padding:"6px 8px",fontSize:12.5}} value={c.resp} onChange={e=>editar(c.id,"resp",e.target.value)}>
+                      {RESPONSABLES.map(r=><option key={r}>{r}</option>)}
+                    </select>
+                    <select className="ctrl" style={{padding:"6px 8px",fontSize:12.5}} value={c.accion} onChange={e=>editar(c.id,"accion",e.target.value)}>
+                      <option value="ticket">Reclamo</option><option value="consulta">Consulta</option>
+                    </select>
+                    <button className="adj-rm" onClick={()=>eliminar(c.id)} aria-label="Eliminar motivo">✕</button>
+                  </div>
+                : <div className="rr" key={c.id}>
+                    <span>{c.label}</span>
+                    <span><Pill kind={prioClass(c.prioridad)} text={c.prioridad} /></span>
+                    <span>{c.resp}</span>
+                    <span className="hint" style={{fontWeight:600,color:"var(--ink)"}}>{al[c.accion]||"Gestión"}</span>
+                  </div>)}
+              {puedeEditar && <div className="rr" style={{gridTemplateColumns:"1fr"}}>
+                <button className="btn sm ghost" onClick={()=>agregar(k)}>+ Agregar motivo a «{v.label}»</button>
+              </div>}
+            </div>
+          </details>
+        );
+      })}
+
+      <div className="note">
+        <b>Qué significa cada campo.</b> <b>Prioridad</b> ordena la bandeja y define qué es una emergencia.
+        <b> Responsable</b> es el área a la que se dirige el caso. <b>Acción</b> distingue un reclamo (se gestiona y se cierra)
+        de una consulta (registro informativo).<br/>
+        Los cambios afectan a los <b>casos nuevos</b>. Los ya ingresados conservan la clasificación que tenían.
+      </div>
+    </div>
+  );
+}
+
+/* ---- Edificios editables ---- */
+function Edificios({user,puedeEditar,onCambio,toast}){
+  const [lista,setLista]=useState([]); const [cargando,setCargando]=useState(true);
+  const [nuevo,setNuevo]=useState(""); const [masivo,setMasivo]=useState(""); const [verMasivo,setVerMasivo]=useState(false);
+  const [trabajando,setTrabajando]=useState(false);
+
+  const refrescar=async()=>{
+    setCargando(true);
+    try{ const l=await cargarEdificios(); setLista(l); if(l.length) aplicarEdificios(l.map(x=>x.nombre)); onCambio(); }
+    catch(e){ toast("No se pudo leer la lista de edificios.","error"); }
+    setCargando(false);
+  };
+  useEffect(()=>{ refrescar(); },[]);
+
+  const agregar=async()=>{
+    const n=nuevo.trim(); if(!n) return;
+    if(lista.some(x=>norm(x.nombre)===norm(n))){ toast("Ese edificio ya existe.","warn"); return; }
+    setTrabajando(true);
+    try{ await agregarEdificio(n); setNuevo(""); await refrescar(); toast(`«${n}» agregado.`); }
+    catch(e){ toast("No se pudo agregar. ¿Tienes permisos de administrador del sistema?","error"); }
+    setTrabajando(false);
+  };
+  const quitar=async(e)=>{
+    setTrabajando(true);
+    try{ await borrarEdificio(e.id); await refrescar(); toast(`«${e.nombre}» eliminado.`,"info"); }
+    catch(err){ toast("No se pudo eliminar.","error"); }
+    setTrabajando(false);
+  };
+  const importar=async()=>{
+    const nombres=[...new Set(masivo.split("\n").map(x=>x.trim()).filter(Boolean))];
+    if(!nombres.length){ toast("Pega al menos un edificio, uno por línea.","warn"); return; }
+    setTrabajando(true);
+    try{
+      for(const n of nombres) await agregarEdificio(n);
+      setMasivo(""); setVerMasivo(false); await refrescar();
+      toast(`${nombres.length} edificio${nombres.length!==1?"s":""} importado${nombres.length!==1?"s":""}.`);
+    }catch(e){ toast("Falló la importación. ¿Tienes permisos de administrador del sistema?","error"); }
+    setTrabajando(false);
+  };
+  const sembrar=async()=>{
+    setTrabajando(true);
+    try{ for(const n of EDIFICIOS_DEFECTO) await agregarEdificio(n); await refrescar(); toast("Lista inicial cargada."); }
+    catch(e){ toast("No se pudo cargar la lista inicial.","error"); }
+    setTrabajando(false);
+  };
+
+  return (
+    <div>
+      <div className="card pad" style={{marginBottom:18}}>
+        <div className="block-title" style={{marginTop:0}}>Cómo se usan</div>
+        <p className="hint" style={{marginTop:0}}>
+          Cuando un residente escribe su edificio, el sistema lo valida contra esta lista y fija el que más coincide.
+          Si un edificio no está aquí, el residente no podrá ingresar su caso.
+        </p>
+        {cargando ? <div className="hint">Cargando…</div>
+          : <div className="hint">{lista.length>0
+              ? <><b style={{color:"var(--ink)"}}>{lista.length}</b> edificio{lista.length!==1?"s":""} en la base de datos.</>
+              : <>La base está <b>vacía</b>: por ahora se usan los {EDIFICIOS_DEFECTO.length} edificios de ejemplo incluidos en el archivo.</>}</div>}
+      </div>
+
+      {puedeEditar && <div className="card pad" style={{marginBottom:18}}>
+        <div className="block-title" style={{marginTop:0}}>Agregar edificios</div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"flex-end"}}>
+          <div style={{flex:1,minWidth:220}}>
+            <Field label="Nombre del edificio"><input className="ctrl" value={nuevo} placeholder="Ej: Los Aromos" onChange={e=>setNuevo(e.target.value)} onKeyDown={e=>e.key==="Enter"&&agregar()} /></Field>
+          </div>
+          <button className="btn primary" onClick={agregar} disabled={trabajando||!nuevo.trim()} style={{marginBottom:16}}>Agregar</button>
+          <button className="btn" onClick={()=>setVerMasivo(v=>!v)} style={{marginBottom:16}}>{verMasivo?"Cerrar importación":"Importar varios"}</button>
+        </div>
+
+        {verMasivo && <div style={{marginTop:6}}>
+          <Field label="Pega la lista" hint="Un edificio por línea. Copia la columna del reporte de comunidades y pégala aquí.">
+            <textarea className="ctrl" style={{minHeight:130}} value={masivo} onChange={e=>setMasivo(e.target.value)} placeholder={"Capri\nIbsen\nPortofino"} />
+          </Field>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+            <button className="btn ghost sm" onClick={()=>{setMasivo("");setVerMasivo(false);}}>Cancelar</button>
+            <button className="btn primary sm" onClick={importar} disabled={trabajando||!masivo.trim()}>{trabajando?"Importando…":"Importar"}</button>
+          </div>
+          <div className="hint" style={{marginTop:8}}>Los repetidos se ignoran. Si un nombre ya existe, se sobrescribe con el mismo valor.</div>
+        </div>}
+
+        {lista.length===0 && !cargando && <div style={{marginTop:12}}>
+          <button className="btn" onClick={sembrar} disabled={trabajando}>Cargar los {EDIFICIOS_DEFECTO.length} edificios de ejemplo</button>
+          <div className="hint" style={{marginTop:6}}>Úsalo solo para probar. Lo correcto es importar la lista real del reporte de comunidades.</div>
+        </div>}
+      </div>}
+
+      <div className="card">
+        <div className="pad" style={{paddingBottom:8}}><div className="block-title" style={{margin:0}}>Edificios registrados</div></div>
+        {cargando
+          ? <div className="empty-state"><div className="hint">Cargando…</div></div>
+          : lista.length===0
+            ? <div className="empty-state"><div className="em-ic">✧</div>Aún no hay edificios en la base de datos.</div>
+            : <div className="adj-list" style={{padding:"0 16px 16px"}}>
+                {lista.map(e=>(
+                  <div className="adj-item" key={e.id}>
+                    <span className="adj-ic">🏢</span>
+                    <span className="adj-nm">{e.nombre}</span>
+                    <span className="adj-sz mono">{e.id}</span>
+                    {puedeEditar && <button className="adj-rm" onClick={()=>quitar(e)} disabled={trabajando} aria-label={"Eliminar "+e.nombre}>✕</button>}
+                  </div>))}
+              </div>}
+      </div>
+
+      <div className="note">
+        <b>De dónde sale la lista real.</b> El origen es el archivo <b>reporte_comunidades_(fecha)</b>, hoja «Egresos - titular».
+        Hoy la carga es manual: copias esa columna y la pegas en «Importar varios». Automatizar esa sincronización requiere un
+        proceso del lado del servidor; es un paso posterior.<br/>
+        <b>Ojo:</b> eliminar un edificio no borra sus casos, pero los residentes de esa torre ya no podrán ingresar casos nuevos.
+      </div>
     </div>
   );
 }

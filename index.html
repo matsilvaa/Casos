@@ -337,6 +337,9 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 const storage = firebase.storage();
+// Por defecto el SDK reintenta hasta 10 minutos y la subida parece "colgada".
+// Con esto, si algo está mal configurado, el error aparece en segundos.
+try{ storage.setMaxUploadRetryTime(45000); storage.setMaxOperationRetryTime(20000); }catch(e){}
 
 /* Adjuntos. Requieren Cloud Storage habilitado (plan Blaze).
    Si no está habilitado, la app funciona igual: solo fallará al adjuntar. */
@@ -560,6 +563,31 @@ async function guardarTipificacion(cats, autor){
     .set({cats, actualizadoEn:new Date().toISOString(), actualizadoPor:autor});
 }
 
+/* ---- Descarga de respaldos ---- */
+function descargarArchivo(nombre, contenido, tipo){
+  const blob = new Blob([contenido], {type:tipo});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = nombre; document.body.appendChild(a); a.click();
+  document.body.removeChild(a); setTimeout(()=>URL.revokeObjectURL(url), 3000);
+}
+const csvCampo = v => {
+  const s = (v===null||v===undefined) ? "" : String(v);
+  return /[";\n\r]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+};
+function casosACSV(casos){
+  const cab = ["Folio","Creado","Actualizado","Cerrado","Edificio","Unidad","Residente","Correo","Telefono",
+               "Area","Motivo","Prioridad","Responsable","Estatus","Relacionado con","Adjuntos","Mensajes","Descripcion"];
+  const filas = casos.map(t=>[
+    t.folio, t.createdAt, t.updatedAt, t.cerradoEn||"", t.edificio, t.unidad, t.nombre, t.email, t.telefono||"",
+    (FAMILIAS[t.familia]||{}).label||t.familia, t.categoria, t.prioridad, t.responsable, t.estatus,
+    t.relacionadoCon||"", (t.adjuntos||[]).length, (t.hilo||[]).length, t.descripcion
+  ].map(csvCampo).join(";"));
+  // El BOM hace que Excel muestre bien los acentos.
+  return "\uFEFF" + [cab.join(";"), ...filas].join("\r\n");
+}
+const hoyISO = () => new Date().toISOString().slice(0,10);
+
 /* ---- Adjuntos ---- */
 function validarArchivo(f){
   if(f.size > ADJ_MAX_MB*1024*1024) return `«${f.name}» supera los ${ADJ_MAX_MB} MB.`;
@@ -570,14 +598,38 @@ async function subirAdjuntos(files, uid, onProgreso){
   const out=[];
   for(let i=0;i<files.length;i++){
     const f=files[i];
-    if(onProgreso) onProgreso(i+1, files.length);
     const seguro = f.name.replace(/[^\w.\- ]/g,"_");
     const ref = storage.ref().child(`casos/${uid}/${Date.now()}-${i}-${seguro}`);
-    await ref.put(f, {contentType:f.type});
-    const url = await ref.getDownloadURL();
+    const url = await new Promise((resolver,rechazar)=>{
+      const tarea = ref.put(f, {contentType: f.type || "application/octet-stream"});
+      tareaActual = tarea;
+      tarea.on("state_changed",
+        s => { if(onProgreso) onProgreso(i+1, files.length, Math.round((s.bytesTransferred/s.totalBytes)*100)); },
+        err => rechazar(err),
+        async () => { try{ resolver(await tarea.snapshot.ref.getDownloadURL()); }catch(e){ rechazar(e); } }
+      );
+    });
+    tareaActual = null;
     out.push({nombre:f.name, url, tipo:f.type, tamano:f.size});
   }
   return out;
+}
+let tareaActual = null;
+function cancelarSubida(){ if(tareaActual){ try{ tareaActual.cancel(); }catch(e){} tareaActual=null; } }
+
+function traducirErrorStorage(e){
+  const c = (e && e.code) || "";
+  if(c==="storage/unauthorized")
+    return "El almacenamiento rechazó el archivo. Falta publicar las reglas de Storage, o el tipo o tamaño no está permitido.";
+  if(c==="storage/unauthenticated")
+    return "Tu sesión expiró. Vuelve a entrar e inténtalo otra vez.";
+  if(c==="storage/retry-limit-exceeded")
+    return "La subida tardó demasiado. Puede ser una conexión lenta, o que Cloud Storage no esté habilitado en el proyecto (requiere plan Blaze).";
+  if(c==="storage/canceled") return "Subida cancelada.";
+  if(c==="storage/quota-exceeded") return "Se superó la cuota de almacenamiento del proyecto.";
+  if(c==="storage/unknown")
+    return "Error de almacenamiento. Revisa que Cloud Storage esté habilitado y que las reglas estén publicadas.";
+  return (e && e.message) || "No se pudo subir el archivo.";
 }
 
 /* =========================================================================
@@ -756,10 +808,7 @@ function App(){
     let adjuntos=[];
     if(data.archivos && data.archivos.length){
       try{ adjuntos = await subirAdjuntos(data.archivos, user.uid, onProgreso); }
-      catch(e){
-        toast("No se pudieron subir los adjuntos. El almacenamiento de archivos aún no está habilitado.","error");
-        return null;
-      }
+      catch(e){ toast(traducirErrorStorage(e),"error"); return null; }
     }
 
     const base={ createdAt:now, updatedAt:now, edificio:data.edificio, unidad:data.unidad,
@@ -851,7 +900,7 @@ function App(){
           {esAdmin && view==="panel" && <Panel tickets={tickets} porFolio={porFolio} onOpen={t=>setSel({ticket:t,mode:"admin"})} goPortal={()=>navegar("portal")} />}
           {esAdmin && view==="edificios" && <PanelEdificios tickets={tickets} porFolio={porFolio} verCasos={verCasosEdificio} />}
           {esAdmin && view==="reglas" && <Configuracion user={user} puedeEditar={ADMIN_SISTEMA.includes(norm(user.email))} onCambio={()=>setVer(v=>v+1)} ver={ver} toast={toast} />}
-          {esAdmin && view==="ajustes" && <Ajustes user={user} />}
+          {esAdmin && view==="ajustes" && <Ajustes user={user} tickets={tickets} toast={toast} />}
         </div>
       </main>
 
@@ -994,6 +1043,14 @@ function Ingreso({submitCase,email,goMisCasos}){
   const empty={edificio:"",unidad:"",nombre:"",telefono:"",fam:"",catId:"",descripcion:"",ubicacion:"",emergencia:false};
   const [f,setF]=useState(empty); const [errors,setErrors]=useState({}); const [done,setDone]=useState(null); const [saving,setSaving]=useState(false);
   const [archivos,setArchivos]=useState([]); const [errFiles,setErrFiles]=useState(""); const [progreso,setProgreso]=useState(null);
+  const [pct,setPct]=useState(0); const [estancado,setEstancado]=useState(false);
+
+  // Si a los 12 segundos no se ha transferido ni un byte, el problema no es la conexión.
+  useEffect(()=>{
+    if(!saving || !archivos.length){ setEstancado(false); return; }
+    const t=setTimeout(()=>{ if(pct===0) setEstancado(true); }, 12000);
+    return ()=>clearTimeout(t);
+  },[saving,pct,archivos.length]);
   const set=(k,v)=>setF(s=>({...s,[k]:v}));
   const cat=f.catId?CATMAP[f.catId]:null; const catsOfFam=f.fam?CATS.filter(c=>c.fam===f.fam):[];
   const prioridad=cat?(f.emergencia&&cat.prioridad!=="Emergencia"?"Emergencia":cat.prioridad):null;
@@ -1013,9 +1070,12 @@ function Ingreso({submitCase,email,goMisCasos}){
     ["unidad","nombre","fam","catId","descripcion"].forEach(k=>{ if(!f[k]) er[k]="Requerido"; });
     if(!f.edificio) er.edificio="Selecciona un edificio válido";
     setErrors(er); if(Object.keys(er).length) return;
-    setSaving(true);
-    const r=await submitCase({...f, archivos}, (n,total)=>setProgreso(`Subiendo adjunto ${n} de ${total}…`));
-    setSaving(false); setProgreso(null);
+    setSaving(true); setPct(0); setEstancado(false);
+    const r=await submitCase({...f, archivos}, (n,total,porcentaje)=>{
+      setPct(porcentaje);
+      setProgreso(total>1 ? `Subiendo adjunto ${n} de ${total} · ${porcentaje}%` : `Subiendo · ${porcentaje}%`);
+    });
+    setSaving(false); setProgreso(null); setPct(0); setEstancado(false);
     if(r){ setDone(r); window.scrollTo({top:0,behavior:"smooth"}); }
   };
 
@@ -1077,9 +1137,23 @@ function Ingreso({submitCase,email,goMisCasos}){
             </div>}
           </div>
 
+          {saving && archivos.length>0 && <div style={{marginTop:16}}>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:12.5,color:"var(--muted)",marginBottom:5}}>
+              <span>{progreso||"Preparando…"}</span><span className="mono">{pct}%</span>
+            </div>
+            <div className="bar"><span style={{width:pct+"%",transition:"width .25s"}}></span></div>
+            {estancado && <div className="warn-inline" style={{marginTop:10}}>
+              <b>La subida no está avanzando.</b> No es tu conexión: es probable que Cloud Storage no esté habilitado
+              en el proyecto, o que falten publicar las reglas de almacenamiento. Puedes cancelar y enviar el caso sin adjuntos.
+            </div>}
+            <div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}>
+              <button className="btn ghost sm" onClick={cancelarSubida}>Cancelar subida</button>
+            </div>
+          </div>}
+
           <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",gap:12,marginTop:20}}>
-            {progreso && <span className="hint">{progreso}</span>}
-            <button className="btn primary" onClick={submit} disabled={saving}>{saving?(progreso?"Subiendo…":"Enviando…"):"Enviar caso"}</button>
+            {progreso && !archivos.length && <span className="hint">{progreso}</span>}
+            <button className="btn primary" onClick={submit} disabled={saving}>{saving?(archivos.length?"Subiendo…":"Enviando…"):"Enviar caso"}</button>
           </div>
         </div>
         <div className={"triage"+(cat?"":" empty")}>
@@ -1743,13 +1817,69 @@ function QRBlock(){
     </div>
   );
 }
-function Ajustes({user}){
+function RespaldoBlock({tickets,toast}){
+  const [bajando,setBajando]=useState(false);
+
+  const bajarCSV=()=>{
+    if(!tickets.length){ toast("No hay casos que respaldar.","warn"); return; }
+    descargarArchivo(`mesa-de-casos-casos-${hoyISO()}.csv`, casosACSV(tickets), "text/csv;charset=utf-8");
+    toast(`${tickets.length} casos descargados en CSV.`);
+  };
+
+  const bajarJSON=async()=>{
+    setBajando(true);
+    try{
+      let edificios=[], tipificacion=null;
+      try{ edificios=await cargarEdificios(); }catch(e){}
+      try{ tipificacion=await cargarTipificacion(); }catch(e){}
+      const dump={
+        generadoEn:new Date().toISOString(),
+        proyecto:firebaseConfig.projectId,
+        totalCasos:tickets.length,
+        casos:tickets,
+        edificios:edificios.length?edificios:EDIFICIOS.map(n=>({id:slug(n),nombre:n})),
+        tipificacion: tipificacion || CATS,
+        familias: FAMILIAS
+      };
+      descargarArchivo(`mesa-de-casos-respaldo-${hoyISO()}.json`, JSON.stringify(dump,null,2), "application/json");
+      toast("Respaldo completo descargado.");
+    }catch(e){ toast("No se pudo generar el respaldo.","error"); }
+    setBajando(false);
+  };
+
   return (
     <div>
-      <div className="view-head"><div className="kicker">Administración</div><h2>Ajustes</h2><p>Sesión y difusión del acceso para residentes.</p></div>
+      <p className="hint" style={{marginTop:0}}>
+        Descarga una copia de los datos en tu propio dispositivo. Es tu respaldo independiente de Google:
+        sirve para archivar, auditar o migrar a otro sistema.
+      </p>
+      <div style={{display:"flex",gap:10,flexWrap:"wrap",marginTop:12}}>
+        <button className="btn primary" onClick={bajarJSON} disabled={bajando}>{bajando?"Generando…":"Descargar respaldo completo (JSON)"}</button>
+        <button className="btn" onClick={bajarCSV}>Descargar casos para Excel (CSV)</button>
+      </div>
+      <div className="hint" style={{marginTop:10}}>
+        {tickets.length} caso{tickets.length!==1?"s":""} en la base. El JSON incluye además los edificios y las reglas de tipificación.
+      </div>
+      <div className="note" style={{marginTop:14}}>
+        <b>Lo que esta descarga NO incluye:</b> los archivos adjuntos (solo se guardan sus enlaces),
+        la lista de encargados y las reglas de seguridad. Y es una <b>copia manual</b>: no se actualiza sola.
+        Para protección real y automática hay que activar los <b>respaldos programados de Firestore</b> en Google Cloud.
+      </div>
+    </div>
+  );
+}
+
+function Ajustes({user,tickets,toast}){
+  return (
+    <div>
+      <div className="view-head"><div className="kicker">Administración</div><h2>Ajustes</h2><p>Sesión, respaldo de datos y difusión del acceso para residentes.</p></div>
       <div className="card pad" style={{marginBottom:18}}>
         <div className="block-title" style={{marginTop:0}}>Sesión</div>
         <div className="hint">Conectado como <b style={{color:"var(--ink)"}}>{user.displayName||"—"}</b> · <span className="mono">{user.email}</span> · acceso Microsoft</div>
+      </div>
+      <div className="card pad" style={{marginBottom:18}}>
+        <div className="block-title" style={{marginTop:0}}>Respaldo de datos</div>
+        <RespaldoBlock tickets={tickets} toast={toast} />
       </div>
       <div className="card pad">
         <div className="block-title" style={{marginTop:0}}>Acceso de residentes (código QR)</div>

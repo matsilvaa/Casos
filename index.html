@@ -210,6 +210,36 @@
   .tiempo-card{border:1px solid var(--line);border-radius:9px;padding:11px 13px;background:#fff}
   .tiempo-card .tl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted-2);font-weight:700}
   .tiempo-card .tv{font-size:17px;font-weight:700;margin-top:3px;letter-spacing:-.01em}
+
+  /* Panel por edificio: tarjetas de gestión rápida */
+  .egrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:16px}
+  .ecard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-s);padding:16px 17px;text-align:left;border-left:4px solid var(--line);transition:.15s;width:100%}
+  .ecard:hover{box-shadow:var(--shadow);transform:translateY(-2px);border-color:var(--primary);border-left-color:var(--primary)}
+  .ecard.at-alta{border-left-color:var(--alta)}
+  .ecard.at-cri{border-left-color:var(--emerg)}
+  .ecard.at-ok{border-left-color:var(--cerrado)}
+  .ecard-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:13px}
+  .ecard-head h4{margin:0;font-size:15.5px;font-weight:680;letter-spacing:-.01em}
+  .ecard-head .abn{font-size:26px;font-weight:730;line-height:1;letter-spacing:-.03em}
+  .ecard-head .abl{font-size:10.5px;color:var(--muted-2);text-transform:uppercase;letter-spacing:.05em;font-weight:700;text-align:right}
+  .ecard-kpis{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line-soft);border:1px solid var(--line-soft);border-radius:8px;overflow:hidden;margin-bottom:12px}
+  .mini{background:#fff;padding:8px 10px}
+  .mini .mv{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+  .mini .ml{font-size:10.5px;color:var(--muted-2);text-transform:uppercase;letter-spacing:.04em;font-weight:650;margin-top:1px}
+  .mini.alerta .mv{color:var(--emerg)}
+  .mini.warn .mv{color:var(--alta)}
+  .semaforo{display:flex;height:8px;border-radius:5px;overflow:hidden;background:#EDF1F1}
+  .semaforo span{display:block;height:100%}
+  .ecard .sfoot{display:flex;justify-content:space-between;font-size:11px;color:var(--muted-2);margin-top:6px}
+  .ecard .vacio{font-size:12.5px;color:var(--muted-2);padding:6px 0}
+  .leyenda{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:16px;font-size:12px;color:var(--muted)}
+  .leyenda .lg{display:flex;align-items:center;gap:6px}
+  .leyenda .sw{width:12px;height:8px;border-radius:3px;display:inline-block}
+  .resumen{display:flex;flex-wrap:wrap;gap:20px;padding:14px 18px;background:var(--primary-strong);color:#DCEAEA;border-radius:var(--radius);margin-bottom:18px}
+  .resumen .r{display:flex;flex-direction:column}
+  .resumen .rv{font-size:22px;font-weight:730;color:#fff;line-height:1.1;letter-spacing:-.02em}
+  .resumen .rl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8FBEC0;font-weight:650;margin-top:2px}
+  .resumen .r.alerta .rv{color:#FFB4B4}
   .status-actions{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px}
   .status-actions .btn{flex:1;min-width:110px}
   .locknote{background:#F4F7F7;border:1px dashed var(--line);border-radius:var(--radius-s);padding:11px 13px;font-size:12.5px;color:var(--muted);display:flex;gap:8px;align-items:flex-start}
@@ -583,6 +613,7 @@ function App(){
   const [linkSent,setLinkSent]=useState("");     // correo al que se envió el enlace
   const [authError,setAuthError]=useState("");
   const [view,setView]=useState("ingreso");
+  const [preEdificio,setPreEdificio]=useState(null);
   const [sel,setSel]=useState(null);
   const [toasts,setToasts]=useState([]);
 
@@ -735,6 +766,8 @@ function App(){
   const findRelated=(folio)=> tickets.filter(t=>t.relacionadoCon===folio);
   const abiertos=tickets.filter(t=>t.estatus!=="Cerrado").length;
   const porFolio=Object.fromEntries(tickets.map(t=>[t.folio,t]));
+  const navegar=(v)=>{ setPreEdificio(null); setView(v); };
+  const verCasosEdificio=(e)=>{ setPreEdificio(e); setView("portal"); };
 
   return (
     <div className="app">
@@ -750,10 +783,11 @@ function App(){
             <NavBtn id="miscasos" cur={view} set={setView} ico="≣" label="Mis casos" />
           </>}
           {esAdmin && <>
-            <NavBtn id="portal" cur={view} set={setView} ico="≡" label="Bandeja" badge={abiertos||null} />
-            <NavBtn id="panel" cur={view} set={setView} ico="▦" label="Panel" />
-            <NavBtn id="reglas" cur={view} set={setView} ico="▤" label="Reglas" />
-            <NavBtn id="ajustes" cur={view} set={setView} ico="⚙" label="Ajustes" />
+            <NavBtn id="portal" cur={view} set={navegar} ico="≡" label="Bandeja" badge={abiertos||null} />
+            <NavBtn id="panel" cur={view} set={navegar} ico="▦" label="Panel" />
+            <NavBtn id="edificios" cur={view} set={navegar} ico="▩" label="Por edificio" />
+            <NavBtn id="reglas" cur={view} set={navegar} ico="▤" label="Reglas" />
+            <NavBtn id="ajustes" cur={view} set={navegar} ico="⚙" label="Ajustes" />
           </>}
         </nav>
         <div className="foot">
@@ -766,8 +800,9 @@ function App(){
         <div className="content">
           {!esAdmin && view==="ingreso" && <Ingreso submitCase={submitCase} email={user.email} goMisCasos={()=>setView("miscasos")} />}
           {!esAdmin && view==="miscasos" && <MisCasos tickets={tickets} email={user.email} onOpen={t=>setSel({ticket:t,mode:"residente"})} />}
-          {esAdmin && view==="portal" && <Portal tickets={tickets} onOpen={t=>setSel({ticket:t,mode:"admin"})} />}
-          {esAdmin && view==="panel" && <Panel tickets={tickets} porFolio={porFolio} onOpen={t=>setSel({ticket:t,mode:"admin"})} goPortal={()=>setView("portal")} />}
+          {esAdmin && view==="portal" && <Portal tickets={tickets} porFolio={porFolio} initEd={preEdificio} onOpen={t=>setSel({ticket:t,mode:"admin"})} />}
+          {esAdmin && view==="panel" && <Panel tickets={tickets} porFolio={porFolio} onOpen={t=>setSel({ticket:t,mode:"admin"})} goPortal={()=>navegar("portal")} />}
+          {esAdmin && view==="edificios" && <PanelEdificios tickets={tickets} porFolio={porFolio} verCasos={verCasosEdificio} />}
           {esAdmin && view==="reglas" && <Reglas />}
           {esAdmin && view==="ajustes" && <Ajustes user={user} />}
         </div>
@@ -1037,8 +1072,9 @@ function MisCasos({tickets,email,onOpen}){
 }
 
 /* ========================= BANDEJA (ADMIN) ========================= */
-function Portal({tickets,onOpen}){
-  const [fEstatus,setFEstatus]=useState("Abiertos"); const [fPrio,setFPrio]=useState("Todas"); const [fArea,setFArea]=useState("Todas"); const [q,setQ]=useState(""); const [eds,setEds]=useState([]);
+function Portal({tickets,porFolio,initEd,onOpen}){
+  const [fEstatus,setFEstatus]=useState("Abiertos"); const [fPrio,setFPrio]=useState("Todas"); const [fArea,setFArea]=useState("Todas"); const [q,setQ]=useState("");
+  const [eds,setEds]=useState(initEd?[initEd]:[]); const [fEdad,setFEdad]=useState("Todas"); const [orden,setOrden]=useState("prioridad");
   const estatuses=["Abiertos","Recibido","En proceso","Cerrado","Todos"]; const prios=["Todas","Emergencia","Alta","Media","Baja"];
   const list=useMemo(()=>tickets.filter(t=>{
     if(fEstatus==="Abiertos" && t.estatus==="Cerrado") return false;
@@ -1046,23 +1082,36 @@ function Portal({tickets,onOpen}){
     if(fPrio!=="Todas" && t.prioridad!==fPrio) return false;
     if(fArea!=="Todas" && t.familia!==fArea) return false;
     if(eds.length && !eds.includes(t.edificio)) return false;
+    if(fEdad!=="Todas"){ const b=BUCKETS.find(x=>x.k===fEdad); if(b && !b.test(dias(msAcumulado(t,porFolio||{})))) return false; }
     if(q){ const s=((t.folio||"")+(t.nombre||"")+(t.categoria||"")+(t.edificio||"")+(t.unidad||"")+(t.descripcion||"")).toLowerCase(); if(!s.includes(q.toLowerCase())) return false; }
     return true;
-  }),[tickets,fEstatus,fPrio,fArea,q,eds]);
+  }),[tickets,fEstatus,fPrio,fArea,q,eds,fEdad,porFolio]);
   const order={Emergencia:0,Alta:1,Media:2,Baja:3};
-  const sorted=[...list].sort((a,b)=>(order[a.prioridad]-order[b.prioridad])||(new Date(b.updatedAt)-new Date(a.updatedAt)));
+  const sorted=[...list].sort((a,b)=>
+    orden==="antiguedad"
+      ? msAcumulado(b,porFolio||{}) - msAcumulado(a,porFolio||{})
+      : (order[a.prioridad]-order[b.prioridad])||(new Date(b.updatedAt)-new Date(a.updatedAt))
+  );
   return (
     <div>
-      <div className="view-head"><div className="kicker">Administración</div><h2>Bandeja de casos</h2><p>Todos los edificios en una sola vista. Filtra por edificio, área, prioridad o estado; los casos abiertos aparecen primero por prioridad.</p></div>
+      <div className="view-head"><div className="kicker">Administración</div><h2>Bandeja de casos</h2><p>Todos los edificios en una sola vista. Filtra por edificio, área, prioridad, estado o antigüedad.</p></div>
       <div className="filters">
         {estatuses.map(s=><button key={s} className={"chip"+(fEstatus===s?" active":"")} onClick={()=>setFEstatus(s)}>{s}</button>)}
         <div style={{width:1,height:22,background:"var(--line)"}}></div>
         <MultiSelect options={EDIFICIOS} selected={eds} onChange={setEds} label="Edificios" />
         <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={fArea} onChange={e=>setFArea(e.target.value)}><option value="Todas">Todas las áreas</option>{Object.entries(FAMILIAS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
         <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={fPrio} onChange={e=>setFPrio(e.target.value)}>{prios.map(p=><option key={p}>{p==="Todas"?"Todas las prioridades":p}</option>)}</select>
-        <input className="ctrl search" placeholder="Buscar por folio, nombre, motivo…" value={q} onChange={e=>setQ(e.target.value)} />
+        <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={fEdad} onChange={e=>setFEdad(e.target.value)}>
+          <option value="Todas">Toda antigüedad</option>
+          {BUCKETS.map(b=><option key={b.k} value={b.k}>{b.k}</option>)}
+        </select>
+        <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={orden} onChange={e=>setOrden(e.target.value)}>
+          <option value="prioridad">Ordenar por prioridad</option>
+          <option value="antiguedad">Ordenar por antigüedad</option>
+        </select>
+        <input className="ctrl search" placeholder="Buscar por folio, nombre, unidad…" value={q} onChange={e=>setQ(e.target.value)} />
       </div>
-      <div className="hint" style={{marginBottom:12}}>{sorted.length} caso{sorted.length!==1?"s":""}{eds.length?` · ${eds.join(", ")}`:" · todos los edificios"}</div>
+      <div className="hint" style={{marginBottom:12}}>{sorted.length} caso{sorted.length!==1?"s":""}{eds.length?` · ${eds.join(", ")}`:" · todos los edificios"}{fEdad!=="Todas"?` · ${fEdad}`:""}</div>
       {sorted.length===0
         ? <div className="card"><div className="empty-state"><div className="em-ic">✧</div>No hay casos con estos filtros.</div></div>
         : <div className="caselist">{sorted.map(t=>(
@@ -1210,7 +1259,7 @@ function Detail({entry,porFolio,onClose,update,crearRelacionado,related,openTick
 
 /* ========================= PANEL (ADMIN) ========================= */
 function Panel({tickets,porFolio,onOpen,goPortal}){
-  const [fEstatus,setFEstatus]=useState("Todos"); const [eds,setEds]=useState([]); const [fArea,setFArea]=useState("Todas"); const [fPrio,setFPrio]=useState("Todas"); const [fUnidad,setFUnidad]=useState("");
+  const [fEstatus,setFEstatus]=useState("Todos"); const [eds,setEds]=useState([]); const [fArea,setFArea]=useState("Todas"); const [fPrio,setFPrio]=useState("Todas"); const [fUnidad,setFUnidad]=useState(""); const [fEdad,setFEdad]=useState("Todas");
   const estatuses=["Todos","Abiertos","Recibido","En proceso","Cerrado"]; const prios=["Todas","Emergencia","Alta","Media","Baja"];
   const filtered=useMemo(()=>tickets.filter(t=>{
     if(fEstatus==="Abiertos" && t.estatus==="Cerrado") return false;
@@ -1219,8 +1268,9 @@ function Panel({tickets,porFolio,onOpen,goPortal}){
     if(fArea!=="Todas" && t.familia!==fArea) return false;
     if(fPrio!=="Todas" && t.prioridad!==fPrio) return false;
     if(fUnidad.trim() && !norm(t.unidad||"").includes(norm(fUnidad))) return false;
+    if(fEdad!=="Todas"){ const b=BUCKETS.find(x=>x.k===fEdad); if(b && !b.test(dias(msAcumulado(t,porFolio||{})))) return false; }
     return true;
-  }),[tickets,fEstatus,eds,fArea,fPrio,fUnidad]);
+  }),[tickets,fEstatus,eds,fArea,fPrio,fUnidad,fEdad,porFolio]);
 
   // Antigüedad: solo tiene sentido sobre los casos abiertos.
   const abiertosF=filtered.filter(t=>t.estatus!=="Cerrado");
@@ -1238,8 +1288,8 @@ function Panel({tickets,porFolio,onOpen,goPortal}){
   const maxFam=Math.max(1,...famCounts.map(x=>x.n)); const maxEd=Math.max(1,...edCounts.map(x=>x.n));
   const recientes=[...filtered].sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt)).slice(0,6);
   const prioColor={Emergencia:"var(--emerg)",Alta:"var(--alta)",Media:"var(--media)",Baja:"var(--baja)"};
-  const clear=()=>{ setFEstatus("Todos"); setEds([]); setFArea("Todas"); setFPrio("Todas"); setFUnidad(""); };
-  const active = fEstatus!=="Todos"||eds.length||fArea!=="Todas"||fPrio!=="Todas"||fUnidad.trim();
+  const clear=()=>{ setFEstatus("Todos"); setEds([]); setFArea("Todas"); setFPrio("Todas"); setFUnidad(""); setFEdad("Todas"); };
+  const active = fEstatus!=="Todos"||eds.length||fArea!=="Todas"||fPrio!=="Todas"||fUnidad.trim()||fEdad!=="Todas";
 
   return (
     <div>
@@ -1251,8 +1301,13 @@ function Panel({tickets,porFolio,onOpen,goPortal}){
         <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={fArea} onChange={e=>setFArea(e.target.value)}><option value="Todas">Todas las áreas</option>{Object.entries(FAMILIAS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
         <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={fPrio} onChange={e=>setFPrio(e.target.value)}>{prios.map(p=><option key={p}>{p==="Todas"?"Todas las prioridades":p}</option>)}</select>
         <input className="ctrl" style={{width:170,padding:"7px 10px"}} placeholder="Unidad / Depto…" value={fUnidad} onChange={e=>setFUnidad(e.target.value)} />
+        <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={fEdad} onChange={e=>setFEdad(e.target.value)}>
+          <option value="Todas">Toda antigüedad</option>
+          {BUCKETS.map(b=><option key={b.k} value={b.k}>{b.k}</option>)}
+        </select>
         {active && <button className="btn ghost sm" onClick={clear}>Limpiar filtros</button>}
       </div>
+      {fEdad!=="Todas" && <div className="hint" style={{marginTop:-6,marginBottom:12}}>Antigüedad = tiempo acumulado del caso y de los casos anteriores a los que hace referencia. En los cerrados, es cuánto tardó en resolverse.</div>}
       {eds.length===0 && fUnidad.trim() && <div className="hint" style={{marginTop:-6,marginBottom:12}}>Buscando la unidad «{fUnidad}» en todos los edificios. Selecciona un edificio para acotar.</div>}
       <div className="kpis">
         <div className="kpi"><div className="n">{total}</div><div className="l">Casos</div></div>
@@ -1310,6 +1365,97 @@ function Panel({tickets,porFolio,onOpen,goPortal}){
             </button>)}</div>
           </div>
         </>}
+    </div>
+  );
+}
+
+/* ========================= PANEL POR EDIFICIO (2.0) ========================= */
+function PanelEdificios({tickets,porFolio,verCasos}){
+  const [q,setQ]=useState(""); const [soloConCasos,setSoloConCasos]=useState(true);
+
+  const datos=useMemo(()=>EDIFICIOS.map(e=>{
+    const casos=tickets.filter(t=>t.edificio===e);
+    const abiertos=casos.filter(t=>t.estatus!=="Cerrado");
+    const edades=abiertos.map(t=>msAcumulado(t,porFolio||{}));
+    const prom=edades.length? edades.reduce((a,b)=>a+b,0)/edades.length : 0;
+    const max=edades.length? Math.max(...edades) : 0;
+    return {
+      e, total:casos.length, abiertos:abiertos.length, cerrados:casos.length-abiertos.length,
+      emerg:abiertos.filter(t=>t.prioridad==="Emergencia").length,
+      alta:abiertos.filter(t=>t.prioridad==="Alta").length,
+      recibidos:abiertos.filter(t=>t.estatus==="Recibido").length,
+      proceso:abiertos.filter(t=>t.estatus==="En proceso").length,
+      prom, max,
+      tramos: BUCKETS.map(b=>edades.filter(ms=>b.test(dias(ms))).length)
+    };
+  }),[tickets,porFolio]);
+
+  const visibles=datos
+    .filter(d=>!soloConCasos || d.total>0)
+    .filter(d=>!q.trim() || norm(d.e).includes(norm(q)))
+    .sort((a,b)=> (b.emerg-a.emerg) || (b.max-a.max) || (b.abiertos-a.abiertos) || a.e.localeCompare(b.e));
+
+  const totAbiertos=datos.reduce((s,d)=>s+d.abiertos,0);
+  const totEmerg=datos.reduce((s,d)=>s+d.emerg,0);
+  const edConCasos=datos.filter(d=>d.abiertos>0).length;
+  const critico=datos.filter(d=>dias(d.max)>=8).length;
+
+  const nivel=(d)=> d.emerg>0 ? "at-cri" : (dias(d.max)>=8 ? "at-alta" : (d.abiertos===0 ? "at-ok" : ""));
+
+  return (
+    <div>
+      <div className="view-head"><div className="kicker">Administración</div><h2>Panel por edificio</h2><p>Un cuadro por edificio con sus indicadores clave. Ordenados por urgencia: primero los que tienen emergencias, luego los que arrastran casos más antiguos.</p></div>
+
+      <div className="resumen">
+        <div className="r"><span className="rv">{totAbiertos}</span><span className="rl">Casos abiertos</span></div>
+        <div className={"r"+(totEmerg?" alerta":"")}><span className="rv">{totEmerg}</span><span className="rl">Emergencias</span></div>
+        <div className="r"><span className="rv">{edConCasos}</span><span className="rl">Edificios con pendientes</span></div>
+        <div className={"r"+(critico?" alerta":"")}><span className="rv">{critico}</span><span className="rl">Con casos de +8 días</span></div>
+      </div>
+
+      <div className="filters">
+        <input className="ctrl search" placeholder="Buscar edificio…" value={q} onChange={e=>setQ(e.target.value)} />
+        <button className={"chip"+(soloConCasos?" active":"")} onClick={()=>setSoloConCasos(s=>!s)}>{soloConCasos?"Solo con casos":"Mostrando todos"}</button>
+      </div>
+
+      <div className="leyenda">
+        <span style={{fontWeight:600,color:"var(--ink)"}}>Antigüedad de los abiertos:</span>
+        {BUCKETS.map(b=><span className="lg" key={b.k}><span className="sw" style={{background:b.color}}></span>{b.k}</span>)}
+      </div>
+
+      {visibles.length===0
+        ? <div className="card"><div className="empty-state"><div className="em-ic">✧</div>No hay edificios que coincidan.</div></div>
+        : <div className="egrid">
+            {visibles.map(d=>{
+              const totalTramos=d.tramos.reduce((a,b)=>a+b,0);
+              return (
+                <button key={d.e} className={"ecard "+nivel(d)} onClick={()=>verCasos(d.e)} title={`Ver casos de ${d.e}`}>
+                  <div className="ecard-head">
+                    <h4>{d.e}</h4>
+                    <div><div className="abn" style={d.emerg?{color:"var(--emerg)"}:null}>{d.abiertos}</div><div className="abl">Abiertos</div></div>
+                  </div>
+
+                  <div className="ecard-kpis">
+                    <div className={"mini"+(d.emerg?" alerta":"")}><div className="mv">{d.emerg}</div><div className="ml">Emergencias</div></div>
+                    <div className={"mini"+(d.alta?" warn":"")}><div className="mv">{d.alta}</div><div className="ml">Prioridad alta</div></div>
+                    <div className="mini"><div className="mv">{d.recibidos}</div><div className="ml">Sin atender</div></div>
+                    <div className="mini"><div className="mv">{d.proceso}</div><div className="ml">En proceso</div></div>
+                    <div className="mini"><div className="mv">{d.abiertos?fmtDur(d.prom):"—"}</div><div className="ml">Antigüedad prom.</div></div>
+                    <div className={"mini"+(dias(d.max)>=8?" alerta":dias(d.max)>=4?" warn":"")}><div className="mv">{d.abiertos?fmtDur(d.max):"—"}</div><div className="ml">Más antiguo</div></div>
+                  </div>
+
+                  {totalTramos>0
+                    ? <>
+                        <div className="semaforo">
+                          {d.tramos.map((n,i)=> n>0 ? <span key={i} style={{width:(n/totalTramos*100)+"%",background:BUCKETS[i].color}} title={`${n} · ${BUCKETS[i].k}`}></span> : null)}
+                        </div>
+                        <div className="sfoot"><span>{d.cerrados} cerrados</span><span>Ver casos →</span></div>
+                      </>
+                    : <div className="vacio">Sin casos abiertos{d.cerrados?` · ${d.cerrados} cerrados`:""}.</div>}
+                </button>
+              );
+            })}
+          </div>}
     </div>
   );
 }

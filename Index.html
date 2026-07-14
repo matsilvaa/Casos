@@ -1,0 +1,1914 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mesa de Casos — Cumbre Asesorías Ltda.</title>
+<style>
+  :root{
+    --ink:#15272C; --primary:#12565D; --primary-strong:#0B3B41; --primary-soft:#E4EEEE;
+    --canvas:#EDF1F1; --surface:#FFFFFF; --line:#D6E0E0; --line-soft:#E7EDED;
+    --muted:#5B6B70; --muted-2:#7C8A8E;
+    --recibido:#2563EB; --proceso:#B45309; --cerrado:#15803D;
+    --emerg:#C1121F; --alta:#DC6B1A; --media:#2A7DA3; --baja:#6B7B82;
+    --radius:12px; --radius-s:8px;
+    --shadow:0 1px 2px rgba(16,40,44,.06),0 8px 24px rgba(16,40,44,.06);
+    --shadow-s:0 1px 2px rgba(16,40,44,.08);
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:var(--sans);color:var(--ink);background:var(--canvas);line-height:1.5;-webkit-font-smoothing:antialiased}
+  button{font-family:inherit;cursor:pointer}
+  input,select,textarea{font-family:inherit;font-size:14px}
+  .mono{font-family:var(--mono)}
+
+  .center-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(1200px 600px at 50% -10%,#DCEAEA,transparent),var(--canvas)}
+  .landing{max-width:760px;width:100%}
+  .landing .lead{text-align:center;margin-bottom:26px}
+  .landing .mark{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--primary);font-weight:700}
+  .landing h1{font-size:32px;margin:8px 0 6px;letter-spacing:-.025em}
+  .landing p{color:var(--muted);margin:0}
+  .role-cards{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .role-card{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow-s);transition:.16s;cursor:pointer}
+  .role-card:hover{border-color:var(--primary);box-shadow:var(--shadow);transform:translateY(-2px)}
+  .role-card .rc-ic{width:46px;height:46px;border-radius:12px;background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:14px}
+  .role-card h3{margin:0 0 6px;font-size:18px}
+  .role-card p{font-size:13.5px;color:var(--muted);margin:0 0 14px}
+  .role-card .go{font-size:13px;font-weight:700;color:var(--primary)}
+  .login-card{max-width:440px;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px}
+  .login-card h2{margin:2px 0 4px;font-size:22px}
+  .login-card .sub{color:var(--muted);font-size:13.5px;margin-bottom:20px}
+  .msbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;background:#fff;border:1px solid var(--line);border-radius:var(--radius-s);padding:12px;font-size:14px;font-weight:600;color:var(--ink)}
+  .msbtn:hover{border-color:var(--primary)}
+  .msbtn .ms-logo{width:18px;height:18px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:2px}
+  .msbtn .ms-logo i{display:block}
+  .msbtn .ms-logo i:nth-child(1){background:#F25022}.msbtn .ms-logo i:nth-child(2){background:#7FBA00}
+  .msbtn .ms-logo i:nth-child(3){background:#00A4EF}.msbtn .ms-logo i:nth-child(4){background:#FFB900}
+  .note-info{background:#EAF0FB;border:1px solid #CDDCF5;border-radius:var(--radius-s);padding:11px 13px;font-size:12.5px;color:#274672;margin-top:14px}
+  .err-box{background:#FBE7E8;border:1px solid #F0C7C9;border-radius:var(--radius-s);padding:11px 13px;font-size:12.5px;color:#8E1319;margin-top:14px}
+
+  /* Advertencia de correo no deseado: deliberadamente imposible de pasar por alto. */
+  .warn-box{background:#FEF3C7;border:2px solid #D97706;border-radius:10px;padding:15px 16px;margin:16px 0}
+  .warn-box .wt{display:flex;gap:9px;align-items:center;font-weight:800;color:#92400E;font-size:13.5px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;line-height:1.3}
+  .warn-box .wt .wic{font-size:20px;line-height:1}
+  .warn-box p{margin:0 0 9px;font-size:13.5px;color:#78350F}
+  .warn-box p:last-child{margin-bottom:0}
+  .warn-box .sender{font-family:var(--mono);font-size:11.5px;background:#FDE68A;padding:4px 8px;border-radius:5px;display:inline-block;word-break:break-all;color:#713F12}
+  .warn-inline{background:#FEF3C7;border-left:3px solid #D97706;border-radius:6px;padding:9px 12px;font-size:12.5px;color:#78350F;margin-top:10px}
+
+  .adj-list{display:flex;flex-direction:column;gap:6px}
+  .adj-item{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:13px;color:var(--ink);text-decoration:none}
+  a.adj-item:hover{border-color:var(--primary);background:#F7FAFA}
+  .adj-ic{font-size:15px;flex:none}
+  .adj-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:560}
+  .adj-sz{font-size:11.5px;color:var(--muted-2);flex:none;font-variant-numeric:tabular-nums}
+  .adj-rm{border:0;background:#EDF1F1;color:var(--muted);width:24px;height:24px;border-radius:6px;font-size:12px;line-height:1;flex:none}
+  .adj-rm:hover{background:#FBE7E8;color:var(--emerg)}
+  input[type=file].ctrl{padding:9px 11px;font-size:13px}
+
+  .app{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+  .side{background:var(--primary-strong);color:#DCEAEA;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+  .brand{padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .brand .mark{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#8FBEC0;font-weight:600}
+  .brand h1{font-size:18px;margin:6px 0 2px;color:#fff;font-weight:650;letter-spacing:-.01em}
+  .brand .org{font-size:12px;color:#9DBCBE}
+  .nav{padding:14px 12px;display:flex;flex-direction:column;gap:2px;flex:1}
+  .nav button{display:flex;align-items:center;gap:11px;width:100%;text-align:left;background:transparent;border:0;color:#BFD6D7;padding:11px 12px;border-radius:var(--radius-s);font-size:14px;font-weight:500}
+  .nav button:hover{background:rgba(255,255,255,.06);color:#fff}
+  .nav button.active{background:var(--primary);color:#fff}
+  .nav .ico{width:18px;height:18px;flex:none;opacity:.9;text-align:center}
+  .nav .badge{margin-left:auto;background:#DC6B1A;color:#fff;font-size:11px;font-weight:700;padding:1px 7px;border-radius:20px}
+  .nav button.active .badge{background:#fff;color:var(--primary-strong)}
+  .side .foot{padding:12px 14px;border-top:1px solid rgba(255,255,255,.08)}
+  .side .foot .who{font-size:12px;color:#9DBCBE;margin-bottom:8px;word-break:break-all}
+  .side .foot .exit{width:100%;background:rgba(255,255,255,.06);color:#CFE3E3;border:0;padding:10px;border-radius:8px;font-size:13px;font-weight:600}
+  .side .foot .exit:hover{background:rgba(255,255,255,.12);color:#fff}
+
+  .main{min-width:0}
+  .content{padding:28px 34px 60px;max-width:1120px;margin:0 auto}
+  .view-head{margin-bottom:22px}
+  .view-head .kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--primary);font-weight:650}
+  .view-head h2{font-size:25px;margin:5px 0 4px;letter-spacing:-.02em;font-weight:680}
+  .view-head p{margin:0;color:var(--muted);font-size:14px;max-width:64ch}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-s)}
+  .pad{padding:22px}
+
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+  .field.full{grid-column:1/-1}
+  label.lbl{font-size:13px;font-weight:600;color:var(--ink)}
+  label.lbl .req{color:var(--emerg)}
+  .hint{font-size:12px;color:var(--muted-2)}
+  .ctrl{padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-s);background:#fff;color:var(--ink);width:100%;transition:border-color .15s,box-shadow .15s}
+  .ctrl:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+  .ctrl:disabled{background:#F4F7F7;color:var(--muted)}
+  textarea.ctrl{min-height:112px;resize:vertical}
+  .check{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius-s);background:#FBFCFC}
+  .check input{margin-top:2px}
+  .check .t{font-size:13px}
+  .sect-label{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-2);font-weight:700;margin:6px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line-soft)}
+
+  .ac-wrap{position:relative}
+  .ac-ok{position:absolute;right:12px;top:21px;transform:translateY(-50%);color:var(--cerrado);font-weight:700;font-size:15px;pointer-events:none}
+
+  .triage{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:linear-gradient(180deg,#F7FAFA,#fff)}
+  .triage .th{display:flex;align-items:center;gap:9px;padding:13px 16px;border-bottom:1px solid var(--line-soft);background:#fff}
+  .triage .th .dot{width:8px;height:8px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 4px var(--primary-soft)}
+  .triage .th h4{margin:0;font-size:13px;letter-spacing:.02em;text-transform:uppercase;color:var(--primary);font-weight:700}
+  .triage .tb{padding:16px}
+  .triage.empty .tb{color:var(--muted-2);font-size:13px}
+  .trow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-bottom:1px dashed var(--line-soft)}
+  .trow:last-child{border-bottom:0}
+  .trow .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .trow .v{font-size:14px;font-weight:600;text-align:right}
+  .fadein{animation:fade .32s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:650;padding:3px 9px;border-radius:20px;white-space:nowrap}
+  .pill .pdot{width:7px;height:7px;border-radius:50%}
+  .p-emerg{background:#FBE7E8;color:#8E1319}.p-emerg .pdot{background:var(--emerg)}
+  .p-alta{background:#FBEEDF;color:#9A4B12}.p-alta .pdot{background:var(--alta)}
+  .p-media{background:#E2F0F6;color:#1C5C79}.p-media .pdot{background:var(--media)}
+  .p-baja{background:#EDF1F1;color:#4C5A5E}.p-baja .pdot{background:var(--baja)}
+  .s-recibido{background:#E6EEFE;color:#1D4ED8}.s-recibido .pdot{background:var(--recibido)}
+  .s-proceso{background:#FBEEDF;color:#92400E}.s-proceso .pdot{background:var(--proceso)}
+  .s-cerrado{background:#E4F3E9;color:#166534}.s-cerrado .pdot{background:var(--cerrado)}
+  .ref-tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:650;color:var(--primary);background:var(--primary-soft);padding:2px 8px;border-radius:6px;border:0;cursor:pointer}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:#fff;color:var(--ink);padding:10px 16px;border-radius:var(--radius-s);font-size:14px;font-weight:600;transition:.15s}
+  .btn:hover{border-color:var(--muted-2)}
+  .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+  .btn.primary:hover{background:var(--primary-strong);border-color:var(--primary-strong)}
+  .btn.ghost{background:transparent}
+  .btn.sm{padding:7px 12px;font-size:13px}
+  .btn.block{width:100%}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+
+  .filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px}
+  .chip{border:1px solid var(--line);background:#fff;color:var(--muted);padding:7px 13px;border-radius:20px;font-size:13px;font-weight:600}
+  .chip.active{background:var(--ink);border-color:var(--ink);color:#fff}
+  .search{flex:1;min-width:200px}
+  .ms-wrap{position:relative}
+  .ms-btn{border:1px solid var(--line);background:#fff;padding:7px 12px;border-radius:20px;font-size:13px;font-weight:600;color:var(--ink);display:flex;gap:6px;align-items:center}
+  .ms-btn.on{border-color:var(--primary);color:var(--primary)}
+  .ms-menu{position:absolute;top:calc(100% + 6px);left:0;background:#fff;border:1px solid var(--line);border-radius:var(--radius-s);box-shadow:var(--shadow);z-index:30;width:260px;padding:8px}
+  .ms-menu .ms-search{width:100%;margin-bottom:6px}
+  .ms-list{max-height:220px;overflow-y:auto}
+  .ms-opt{display:flex;gap:9px;align-items:center;padding:7px 8px;border-radius:6px;font-size:13.5px;cursor:pointer}
+  .ms-opt:hover{background:var(--primary-soft)}
+  .ms-foot{display:flex;justify-content:space-between;border-top:1px solid var(--line-soft);margin-top:6px;padding-top:8px}
+  .ms-foot button{background:none;border:0;font-size:12.5px;font-weight:600;color:var(--primary)}
+  .ac-empty{padding:11px;font-size:13px;color:var(--muted-2)}
+
+  .caselist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:#fff}
+  .caserow{display:grid;grid-template-columns:120px 1fr auto;gap:14px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line-soft);text-align:left;background:#fff;border-left:3px solid transparent;width:100%}
+  .caserow:last-child{border-bottom:0}
+  .caserow:hover{background:#F7FAFA}
+  .caserow.b-emerg{border-left-color:var(--emerg)}
+  .caserow.b-alta{border-left-color:var(--alta)}
+  .caserow .folio{font-size:12px;color:var(--muted)}
+  .caserow .tt{font-weight:620;font-size:14px}
+  .caserow .meta{font-size:12px;color:var(--muted-2);margin-top:2px}
+  .caserow .rt{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+  .empty-state{text-align:center;padding:52px 20px;color:var(--muted)}
+  .empty-state .em-ic{font-size:30px;margin-bottom:8px;opacity:.5}
+
+  .scrim{position:fixed;inset:0;background:rgba(16,32,36,.42);display:flex;justify-content:flex-end;z-index:50}
+  .drawer{width:min(560px,100%);background:var(--canvas);height:100%;overflow-y:auto;box-shadow:-14px 0 40px rgba(0,0,0,.18);animation:slidein .28s ease}
+  @keyframes slidein{from{transform:translateX(24px);opacity:.6}to{transform:none;opacity:1}}
+  .dr-head{position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--line);padding:18px 22px;z-index:2}
+  .dr-head .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+  .dr-head h3{margin:8px 0 4px;font-size:19px;letter-spacing:-.01em}
+  .dr-close{border:0;background:#EDF1F1;width:32px;height:32px;border-radius:8px;font-size:17px;color:var(--muted);line-height:1}
+  .dr-body{padding:20px 22px 40px}
+  .kv{display:grid;grid-template-columns:120px 1fr;gap:6px 14px;font-size:13px;margin:2px 0 18px}
+  .kv dt{color:var(--muted);font-weight:500}
+  .kv dd{margin:0;font-weight:560}
+  .block-title{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2);font-weight:700;margin:20px 0 10px}
+  .thread{display:flex;flex-direction:column;gap:10px}
+  .msg{background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+  .msg.staff{background:var(--primary-soft);border-color:#CFE1E1}
+  .msg .who{font-size:12px;font-weight:700;display:flex;justify-content:space-between;gap:8px;margin-bottom:4px}
+  .msg .who .tm{color:var(--muted-2);font-weight:500}
+  .msg .tx{font-size:13.5px;white-space:pre-wrap}
+  .log{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+  .log li{display:flex;gap:10px;font-size:12.5px;color:var(--muted);align-items:flex-start}
+  .log .lg-dot{width:7px;height:7px;border-radius:50%;background:var(--primary);margin-top:5px;flex:none}
+  .log .lg-autor{color:var(--ink);font-weight:650}
+  .log .lg-meta{display:block;color:var(--muted-2);font-size:11.5px;margin-top:1px}
+
+  .edad{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:650;padding:2px 8px;border-radius:6px;white-space:nowrap}
+  .e-ok{background:#EDF1F1;color:#4C5A5E}
+  .e-med{background:#E2F0F6;color:#1C5C79}
+  .e-alt{background:#FBEEDF;color:#9A4B12}
+  .e-cri{background:#FBE7E8;color:#8E1319}
+  .sumtag{font-size:10.5px;font-weight:700;color:var(--primary);background:var(--primary-soft);padding:1px 6px;border-radius:5px;margin-left:5px}
+  .tiempos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:2px 0 6px}
+  .tiempo-card{border:1px solid var(--line);border-radius:9px;padding:11px 13px;background:#fff}
+  .tiempo-card .tl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted-2);font-weight:700}
+  .tiempo-card .tv{font-size:17px;font-weight:700;margin-top:3px;letter-spacing:-.01em}
+
+  /* Panel por edificio: tarjetas de gestión rápida */
+  .egrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:16px}
+  .ecard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-s);padding:16px 17px;text-align:left;border-left:4px solid var(--line);transition:.15s;width:100%}
+  .ecard:hover{box-shadow:var(--shadow);transform:translateY(-2px);border-color:var(--primary);border-left-color:var(--primary)}
+  .ecard.at-alta{border-left-color:var(--alta)}
+  .ecard.at-cri{border-left-color:var(--emerg)}
+  .ecard.at-ok{border-left-color:var(--cerrado)}
+  .ecard-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:13px}
+  .ecard-head h4{margin:0;font-size:15.5px;font-weight:680;letter-spacing:-.01em}
+  .ecard-head .abn{font-size:26px;font-weight:730;line-height:1;letter-spacing:-.03em}
+  .ecard-head .abl{font-size:10.5px;color:var(--muted-2);text-transform:uppercase;letter-spacing:.05em;font-weight:700;text-align:right}
+  .ecard-kpis{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line-soft);border:1px solid var(--line-soft);border-radius:8px;overflow:hidden;margin-bottom:12px}
+  .mini{background:#fff;padding:8px 10px}
+  .mini .mv{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+  .mini .ml{font-size:10.5px;color:var(--muted-2);text-transform:uppercase;letter-spacing:.04em;font-weight:650;margin-top:1px}
+  .mini.alerta .mv{color:var(--emerg)}
+  .mini.warn .mv{color:var(--alta)}
+  .semaforo{display:flex;height:8px;border-radius:5px;overflow:hidden;background:#EDF1F1}
+  .semaforo span{display:block;height:100%}
+  .ecard .sfoot{display:flex;justify-content:space-between;font-size:11px;color:var(--muted-2);margin-top:6px}
+  .ecard .vacio{font-size:12.5px;color:var(--muted-2);padding:6px 0}
+  .leyenda{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:16px;font-size:12px;color:var(--muted)}
+  .leyenda .lg{display:flex;align-items:center;gap:6px}
+  .leyenda .sw{width:12px;height:8px;border-radius:3px;display:inline-block}
+  .resumen{display:flex;flex-wrap:wrap;gap:20px;padding:14px 18px;background:var(--primary-strong);color:#DCEAEA;border-radius:var(--radius);margin-bottom:18px}
+  .resumen .r{display:flex;flex-direction:column}
+  .resumen .rv{font-size:22px;font-weight:730;color:#fff;line-height:1.1;letter-spacing:-.02em}
+  .resumen .rl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8FBEC0;font-weight:650;margin-top:2px}
+  .resumen .r.alerta .rv{color:#FFB4B4}
+  .status-actions{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px}
+  .status-actions .btn{flex:1;min-width:110px}
+  .locknote{background:#F4F7F7;border:1px dashed var(--line);border-radius:var(--radius-s);padding:11px 13px;font-size:12.5px;color:var(--muted);display:flex;gap:8px;align-items:flex-start}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:14px;margin-bottom:22px}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px}
+  .kpi .n{font-size:30px;font-weight:720;letter-spacing:-.03em;line-height:1}
+  .kpi .l{font-size:12px;color:var(--muted);margin-top:6px;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+  .kpi.alert .n{color:var(--emerg)}
+  .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .bar-row{margin-bottom:12px}
+  .bar-row .bl{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+  .bar-row .bl .bn{font-weight:600}.bar-row .bl .bc{color:var(--muted);font-variant-numeric:tabular-nums}
+  .bar{height:9px;border-radius:6px;background:#EDF1F1;overflow:hidden}
+  .bar > span{display:block;height:100%;border-radius:6px;background:var(--primary)}
+
+  .rule-fam{margin-bottom:8px}
+  .rule-fam summary{cursor:pointer;padding:13px 16px;font-weight:640;background:#fff;border:1px solid var(--line);border-radius:var(--radius-s);list-style:none;display:flex;justify-content:space-between;align-items:center}
+  .rule-fam summary::-webkit-details-marker{display:none}
+  .rule-fam[open] summary{border-bottom-left-radius:0;border-bottom-right-radius:0}
+  .rule-tbl{border:1px solid var(--line);border-top:0;border-radius:0 0 var(--radius-s) var(--radius-s);overflow:hidden}
+  .rule-tbl .rr{display:grid;grid-template-columns:1fr 92px 130px 120px;gap:10px;padding:10px 16px;font-size:13px;border-bottom:1px solid var(--line-soft);align-items:center;background:#fff}
+  .rule-tbl .rr:last-child{border-bottom:0}
+  .rule-tbl .rr.hd{background:#F6F9F9;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted-2);font-weight:700}
+  .note{background:#FBFAF3;border:1px solid #E9E3C9;border-radius:var(--radius-s);padding:13px 15px;font-size:13px;color:#6B5E2E;margin-top:14px}
+  .note b{color:#5A4E22}
+
+  .qr-box{display:inline-flex;flex-direction:column;align-items:center;gap:10px;padding:16px;background:#fff;border:1px solid var(--line);border-radius:12px}
+  .qr-box .qr-render{width:200px;height:200px;display:flex;align-items:center;justify-content:center}
+
+  .toasts{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:80;width:min(440px,92vw)}
+  .toast{background:var(--ink);color:#fff;padding:12px 16px;border-radius:10px;font-size:13.5px;box-shadow:var(--shadow);display:flex;gap:10px;align-items:flex-start;animation:fade .25s ease}
+  .toast .tk{width:6px;align-self:stretch;border-radius:4px;background:var(--cerrado);flex:none}
+  .toast.info .tk{background:var(--recibido)}
+  .toast.warn .tk{background:var(--alta)}
+  .toast.error .tk{background:var(--emerg)}
+
+  .conf{text-align:center;padding:10px}
+  .conf .ok{width:56px;height:56px;border-radius:50%;background:#E4F3E9;color:var(--cerrado);display:flex;align-items:center;justify-content:center;font-size:28px;margin:6px auto 14px}
+  .conf h3{margin:0 0 6px;font-size:22px}
+  .conf .folio-lg{font-family:var(--mono);font-size:16px;background:#EDF1F1;padding:5px 12px;border-radius:8px;display:inline-block;margin:8px 0 18px}
+  .conf .actions-done{text-align:left;max-width:420px;margin:0 auto 22px}
+
+  .loader{min-height:100vh;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px}
+
+  @media (max-width:900px){
+    .app{grid-template-columns:1fr}
+    .side{position:static;height:auto;flex-direction:row;align-items:center;overflow-x:auto}
+    .brand{border-bottom:0;border-right:1px solid rgba(255,255,255,.08);white-space:nowrap;padding:14px 16px}
+    .brand h1{font-size:15px}.brand .org{display:none}
+    .nav{flex-direction:row;padding:8px;flex:1}
+    .nav button{white-space:nowrap;padding:9px 12px}
+    .side .foot{border-top:0;border-left:1px solid rgba(255,255,255,.08);padding:8px}
+    .side .foot .who{display:none}
+    .content{padding:20px 16px 60px}
+    .form-grid,.dash-grid,.kv{grid-template-columns:1fr}
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .role-cards{grid-template-columns:1fr}
+    .rule-tbl .rr{grid-template-columns:1fr;gap:4px}
+    .rule-tbl .rr.hd{display:none}
+    .caserow{grid-template-columns:1fr;gap:8px}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="root"><div class="loader">Cargando…</div></div>
+
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+
+<script type="text/babel">
+const {useState,useEffect,useMemo,useRef} = React;
+
+/* =========================================================================
+   1 · CONFIGURACIÓN DE FIREBASE  ·  proyecto MesaDeCasos
+   ========================================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyCM4zW1QsipRFKm7fnLB8IOZFhOdlZ8Wk0",
+  authDomain: "mesadecasos-650eb.firebaseapp.com",
+  projectId: "mesadecasos-650eb",
+  storageBucket: "mesadecasos-650eb.firebasestorage.app",
+  messagingSenderId: "177845079908",
+  appId: "1:177845079908:web:254463f58440b4bbb8b471"
+};
+const MS_TENANT = "51705270-efbc-4ca7-835b-593cb7517ca5";
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const storage = firebase.storage();
+// Sin esto, el SDK reintenta en silencio hasta 2 minutos antes de avisar.
+try{ storage.setMaxUploadRetryTime(20000); storage.setMaxOperationRetryTime(20000); }catch(e){}
+
+/* Los correos de acceso se envían en español. */
+auth.languageCode = "es";
+
+/* ---- Identidad del remitente ----
+   Pon DOMINIO_PROPIO en true SOLO cuando la verificación del dominio en
+   Firebase → Authentication → Templates aparezca como completada. */
+const DOMINIO_PROPIO = true;
+const REMITENTE = DOMINIO_PROPIO
+  ? "no-responder@cumbregi.com"
+  : "noreply@mesadecasos-650eb.firebaseapp.com";
+const REMITENTE_NOMBRE = DOMINIO_PROPIO
+  ? "Casos · Cumbre Asesorías Limitada"
+  : "Mesa de Casos";
+// Por defecto el SDK reintenta hasta 10 minutos y la subida parece "colgada".
+// Con esto, si algo está mal configurado, el error aparece en segundos.
+try{ storage.setMaxUploadRetryTime(45000); storage.setMaxOperationRetryTime(20000); }catch(e){}
+
+/* Adjuntos. Requieren Cloud Storage habilitado (plan Blaze).
+   Si no está habilitado, la app funciona igual: solo fallará al adjuntar. */
+const ADJ_MAX_ARCHIVOS = 5;
+const ADJ_MAX_MB = 10;
+const ADJ_TIPOS = ["image/", "application/pdf"];
+
+/* =========================================================================
+   2 · DOMINIO  ·  taxonomía de casos (editable)
+   ========================================================================= */
+const RESPONSABLES = ["Administración","Conserjería","Mantención","Aseo","Seguridad","Cobranzas","Comité"];
+
+/* Solo estos correos pueden editar los edificios y las reglas de tipificación.
+   El resto de los encargados las ve, pero no las modifica. */
+const ADMIN_SISTEMA = ["matias@cumbregi.com","ramon@cumbregi.com"];
+
+/* Edificios y tipificación viven en Firestore (colección 'edificios' y documento 'config/tipificacion').
+   Estos valores son solo el respaldo inicial, si la base todavía está vacía. */
+let EDIFICIOS = ["Capri","Ibsen","Portofino","Bremen","Rampa","Capitán Wood","Andes","Pacífico","Mirador","Alameda","Bilbao","Los Leones","Kennedy Norte","San Damián"];
+const EDIFICIOS_DEFECTO = EDIFICIOS.slice();
+
+const FAMILIAS = {
+  seguridad:{label:"Seguridad y emergencias", ico:"🛡️"},
+  infra:{label:"Infraestructura y equipamiento", ico:"🔧"},
+  servicios:{label:"Servicios comunes", ico:"💧"},
+  amenities:{label:"Áreas comunes y amenities", ico:"🏊"},
+  convivencia:{label:"Convivencia", ico:"🤝"},
+  personal:{label:"Personal del edificio", ico:"👤"},
+  cobranzas:{label:"Cobranzas y gasto común", ico:"📄"},
+  docs:{label:"Documentos y solicitudes", ico:"🗂️"},
+};
+
+let CATS = [
+  {id:"fuga_gas", fam:"seguridad", label:"Detección de fuga de gas", prioridad:"Emergencia", resp:"Seguridad", accion:"ticket"},
+  {id:"atrapado", fam:"seguridad", label:"Persona atrapada en ascensor", prioridad:"Emergencia", resp:"Seguridad", accion:"ticket"},
+  {id:"incendio", fam:"seguridad", label:"Alarma o riesgo de incendio", prioridad:"Emergencia", resp:"Seguridad", accion:"ticket"},
+  {id:"inundacion", fam:"seguridad", label:"Fuga o inundación de agua mayor", prioridad:"Emergencia", resp:"Mantención", accion:"ticket"},
+  {id:"acceso_abierto", fam:"seguridad", label:"Portón o acceso abierto (riesgo)", prioridad:"Alta", resp:"Seguridad", accion:"ticket"},
+  {id:"personas_ajenas", fam:"seguridad", label:"Personas ajenas o sospechosas", prioridad:"Alta", resp:"Seguridad", accion:"ticket"},
+  {id:"cctv", fam:"seguridad", label:"Cámaras de seguridad (CCTV) inoperativas", prioridad:"Alta", resp:"Mantención", accion:"ticket"},
+  {id:"extintores", fam:"seguridad", label:"Extintores o luces de emergencia vencidos/faltantes", prioridad:"Alta", resp:"Mantención", accion:"ticket"},
+  {id:"ascensores", fam:"infra", label:"Mal funcionamiento de ascensores", prioridad:"Alta", resp:"Mantención", accion:"ticket"},
+  {id:"acceso_peatonal", fam:"infra", label:"Falla de puerta peatonal", prioridad:"Media", resp:"Mantención", accion:"ticket"},
+  {id:"acceso_vehicular", fam:"infra", label:"Falla de acceso vehicular / portón", prioridad:"Alta", resp:"Mantención", accion:"ticket"},
+  {id:"citofono", fam:"infra", label:"Falla de citófono / intercomunicador", prioridad:"Media", resp:"Mantención", accion:"ticket"},
+  {id:"tags", fam:"infra", label:"Falla de tags o controles de acceso", prioridad:"Media", resp:"Conserjería", accion:"ticket"},
+  {id:"iluminacion", fam:"infra", label:"Iluminación de áreas comunes en mal estado", prioridad:"Media", resp:"Mantención", accion:"ticket"},
+  {id:"presion_agua", fam:"infra", label:"Problemas de presión de agua", prioridad:"Alta", resp:"Mantención", accion:"ticket"},
+  {id:"bombas", fam:"infra", label:"Falla de bombas o estanques de agua", prioridad:"Alta", resp:"Mantención", accion:"ticket"},
+  {id:"electricidad", fam:"infra", label:"Falla eléctrica en áreas comunes", prioridad:"Alta", resp:"Mantención", accion:"ticket"},
+  {id:"generador", fam:"infra", label:"Falla de grupo electrógeno", prioridad:"Alta", resp:"Mantención", accion:"ticket"},
+  {id:"senaletica", fam:"infra", label:"Señalética en mal estado", prioridad:"Baja", resp:"Mantención", accion:"ticket"},
+  {id:"filtraciones", fam:"infra", label:"Filtraciones o goteras en áreas comunes", prioridad:"Alta", resp:"Mantención", accion:"ticket"},
+  {id:"humedad", fam:"infra", label:"Humedad u hongos en áreas comunes", prioridad:"Media", resp:"Mantención", accion:"ticket"},
+  {id:"filtracion_sub", fam:"infra", label:"Filtración en estacionamientos subterráneos", prioridad:"Media", resp:"Mantención", accion:"ticket"},
+  {id:"calefaccion", fam:"servicios", label:"Falla de calefacción central", prioridad:"Alta", resp:"Mantención", accion:"ticket"},
+  {id:"agua_caliente", fam:"servicios", label:"Temperatura de agua caliente central", prioridad:"Alta", resp:"Mantención", accion:"ticket"},
+  {id:"gas_central", fam:"servicios", label:"Suministro o lectura de gas", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"aseo", fam:"servicios", label:"Aseo deficiente en áreas comunes", prioridad:"Media", resp:"Aseo", accion:"ticket"},
+  {id:"basura", fam:"servicios", label:"Basura mal dispuesta o ductos tapados", prioridad:"Media", resp:"Aseo", accion:"ticket"},
+  {id:"areas_verdes", fam:"servicios", label:"Mantención de áreas verdes", prioridad:"Baja", resp:"Aseo", accion:"ticket"},
+  {id:"plagas", fam:"servicios", label:"Presencia de plagas (roedores, insectos, palomas)", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"ventilacion", fam:"servicios", label:"Ventilación deficiente en subterráneos", prioridad:"Media", resp:"Mantención", accion:"ticket"},
+  {id:"piscina", fam:"amenities", label:"Problema con la piscina", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"gimnasio", fam:"amenities", label:"Problema con el gimnasio", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"sala_multiuso", fam:"amenities", label:"Problema con la sala multiuso", prioridad:"Baja", resp:"Administración", accion:"ticket"},
+  {id:"juegos", fam:"amenities", label:"Problema en juegos infantiles", prioridad:"Media", resp:"Mantención", accion:"ticket"},
+  {id:"quinchos", fam:"amenities", label:"Problema con quinchos", prioridad:"Baja", resp:"Administración", accion:"ticket"},
+  {id:"bicicleteros", fam:"amenities", label:"Problema con bicicleteros", prioridad:"Baja", resp:"Administración", accion:"ticket"},
+  {id:"reserva", fam:"amenities", label:"Reserva de espacios comunes", prioridad:"Baja", resp:"Administración", accion:"consulta"},
+  {id:"ruidos", fam:"convivencia", label:"Ruidos molestos", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"olores", fam:"convivencia", label:"Olores molestos", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"humo", fam:"convivencia", label:"Humo de tabaco que ingresa al departamento", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"mascotas", fam:"convivencia", label:"Incumplimiento del reglamento de mascotas", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"est_visitas", fam:"convivencia", label:"Uso indebido de estacionamientos de visitas", prioridad:"Media", resp:"Conserjería", accion:"ticket"},
+  {id:"est_residentes", fam:"convivencia", label:"Uso indebido de estacionamientos de residentes", prioridad:"Media", resp:"Conserjería", accion:"ticket"},
+  {id:"bodegas", fam:"convivencia", label:"Uso indebido de bodegas", prioridad:"Baja", resp:"Administración", accion:"ticket"},
+  {id:"objetos", fam:"convivencia", label:"Objetos arrojados desde altura", prioridad:"Alta", resp:"Administración", accion:"ticket"},
+  {id:"vandalismo", fam:"convivencia", label:"Vandalismo o rayados", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"obras", fam:"convivencia", label:"Remodelaciones fuera de horario o sin permiso", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"mudanzas", fam:"convivencia", label:"Incumplimiento de horarios de mudanza", prioridad:"Baja", resp:"Conserjería", accion:"ticket"},
+  {id:"encomiendas", fam:"convivencia", label:"Encomienda o paquete extraviado", prioridad:"Media", resp:"Conserjería", accion:"ticket"},
+  {id:"conducta", fam:"convivencia", label:"Conducta de otro residente", prioridad:"Media", resp:"Comité", accion:"ticket"},
+  {id:"trato_conserje", fam:"personal", label:"Trato o conducta de un conserje", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"trato_aseo", fam:"personal", label:"Trato o conducta del personal de aseo", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"trato_mayordomo", fam:"personal", label:"Trato o conducta del mayordomo", prioridad:"Media", resp:"Administración", accion:"ticket"},
+  {id:"felicitacion", fam:"personal", label:"Felicitación o reconocimiento al personal", prioridad:"Baja", resp:"Administración", accion:"consulta"},
+  {id:"comprobante", fam:"cobranzas", label:"Comprobante de pago no considerado (aparece deuda)", prioridad:"Alta", resp:"Cobranzas", accion:"ticket"},
+  {id:"solicitud_gc", fam:"cobranzas", label:"Solicitud del gasto común (última boleta)", prioridad:"Baja", resp:"Cobranzas", accion:"ticket"},
+  {id:"prorrateo", fam:"cobranzas", label:"Error en el prorrateo o en el gasto común", prioridad:"Media", resp:"Cobranzas", accion:"ticket"},
+  {id:"convenio", fam:"cobranzas", label:"Convenio o repactación de deuda", prioridad:"Media", resp:"Cobranzas", accion:"ticket"},
+  {id:"cert_nodeuda", fam:"cobranzas", label:"Certificado de no deuda", prioridad:"Baja", resp:"Cobranzas", accion:"ticket"},
+  {id:"cert_residencia", fam:"docs", label:"Certificado de residencia", prioridad:"Baja", resp:"Administración", accion:"ticket"},
+  {id:"actas", fam:"docs", label:"Acceso a actas de asamblea", prioridad:"Baja", resp:"Administración", accion:"ticket"},
+  {id:"reglamento", fam:"docs", label:"Copia del reglamento de copropiedad", prioridad:"Baja", resp:"Administración", accion:"ticket"},
+  {id:"sugerencia", fam:"docs", label:"Sugerencia o propuesta de mejora", prioridad:"Baja", resp:"Comité", accion:"consulta"},
+  {id:"otro", fam:"docs", label:"Otro (especificar en la descripción)", prioridad:"Media", resp:"Administración", accion:"ticket"},
+];
+let CATMAP = Object.fromEntries(CATS.map(c=>[c.id,c]));
+const CATS_DEFECTO = CATS.slice();
+function aplicarCats(nuevos){ CATS = nuevos; CATMAP = Object.fromEntries(CATS.map(c=>[c.id,c])); }
+function aplicarEdificios(nombres){ EDIFICIOS = nombres.slice(); }
+
+/* ---- Utilidades ---- */
+const norm = s => (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
+function fmtDate(iso){ if(!iso) return "—"; const d=new Date(iso); return d.toLocaleDateString("es-CL",{day:"2-digit",month:"short"})+" · "+d.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"}); }
+function relDays(iso){ if(!iso) return ""; const diff=(Date.now()-new Date(iso))/86400000; if(diff<1)return"hoy"; if(diff<2)return"ayer"; return `hace ${Math.floor(diff)} días`; }
+
+/* ---- Tiempos y antigüedad ----
+   msCaso: cuánto duró (o lleva) un caso.
+   cadena: recorre 'relacionadoCon' hacia atrás hasta el caso original.
+   msAcumulado: suma las duraciones de toda la cadena. */
+function msCaso(t){
+  if(!t) return 0;
+  const fin = t.estatus==="Cerrado" ? new Date(t.cerradoEn || t.updatedAt).getTime() : Date.now();
+  return Math.max(0, fin - new Date(t.createdAt).getTime());
+}
+function cadenaCasos(t, porFolio, vistos){
+  vistos = vistos || new Set();
+  if(!t || vistos.has(t.folio)) return [];
+  vistos.add(t.folio);
+  const padre = t.relacionadoCon ? porFolio[t.relacionadoCon] : null;
+  return [...cadenaCasos(padre, porFolio, vistos), t];
+}
+function msAcumulado(t, porFolio){
+  return cadenaCasos(t, porFolio).reduce((s,c)=>s+msCaso(c), 0);
+}
+const dias = ms => ms/86400000;
+function fmtDur(ms){
+  const d = Math.floor(ms/86400000);
+  const h = Math.floor((ms%86400000)/3600000);
+  if(d<=0) return `${Math.max(1,h)} h`;
+  if(d===1) return "1 día";
+  return `${d} días`;
+}
+function edadClass(d){ if(d<1) return "e-ok"; if(d<4) return "e-med"; if(d<8) return "e-alt"; return "e-cri"; }
+const BUCKETS = [
+  {k:"Menos de 1 día", test:d=>d<1,            color:"var(--baja)"},
+  {k:"1 a 3 días",     test:d=>d>=1 && d<4,    color:"var(--media)"},
+  {k:"4 a 7 días",     test:d=>d>=4 && d<8,    color:"var(--alta)"},
+  {k:"8 a 15 días",    test:d=>d>=8 && d<16,   color:"#B4451A"},
+  {k:"Más de 15 días", test:d=>d>=16,          color:"var(--emerg)"},
+];
+const prioClass = p => ({Emergencia:"p-emerg",Alta:"p-alta",Media:"p-media",Baja:"p-baja"}[p]);
+const statClass = s => ({Recibido:"s-recibido","En proceso":"s-proceso",Cerrado:"s-cerrado"}[s]);
+function Pill({kind,text}){ return <span className={"pill "+kind}><span className="pdot"></span>{text}</span>; }
+function resolveEdificio(query){
+  const q=norm(query); if(!q) return null;
+  const exact=EDIFICIOS.find(e=>norm(e)===q); if(exact) return exact;
+  const pref=EDIFICIOS.filter(e=>norm(e).startsWith(q)).sort((a,b)=>a.length-b.length); if(pref.length) return pref[0];
+  const inc=EDIFICIOS.filter(e=>norm(e).includes(q)).sort((a,b)=>a.length-b.length); if(inc.length) return inc[0];
+  return null;
+}
+
+/* =========================================================================
+   3 · CAPA DE DATOS  ·  Firestore
+   ========================================================================= */
+function mapDoc(d){ return {id:d.id, ...d.data()}; }
+
+function escucharTodos(cb, errCb){
+  return db.collection("casos").onSnapshot(
+    qs => cb(qs.docs.map(mapDoc)),
+    err => errCb && errCb(err)
+  );
+}
+function escucharMios(email, cb, errCb){
+  return db.collection("casos").where("email","==", email).onSnapshot(
+    qs => cb(qs.docs.map(mapDoc)),
+    err => errCb && errCb(err)
+  );
+}
+async function asegurarContador(){
+  const ref = db.collection("contadores").doc("casos");
+  const s = await ref.get();
+  if(!s.exists) await ref.set({ultimo:0});
+}
+async function crearCaso(base){
+  const uid = auth.currentUser.uid;
+  const nuevoRef = db.collection("casos").doc();
+  const contRef = db.collection("contadores").doc("casos");
+  const folio = await db.runTransaction(async tx=>{
+    const snap = await tx.get(contRef);
+    const ultimo = snap.exists ? (snap.data().ultimo||0) : 0;
+    const next = ultimo+1;
+    const f = "CF-2026-"+String(next).padStart(4,"0");
+    tx.set(contRef, {ultimo: next}, {merge:true});
+    tx.set(nuevoRef, {...base, folio:f, creadoPorUid:uid});
+    return f;
+  });
+  return {id:nuevoRef.id, folio};
+}
+async function actualizarCaso(id, patch){
+  await db.collection("casos").doc(id).update({...patch, updatedAt:new Date().toISOString()});
+}
+
+/* ---- Datos maestros: edificios y reglas de tipificación ---- */
+const slug = s => norm(s).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+
+async function cargarEdificios(){
+  const qs = await db.collection("edificios").get();
+  return qs.docs.map(d=>({id:d.id, nombre:(d.data().nombre||d.id)}))
+                .sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+}
+async function agregarEdificio(nombre){
+  const n = nombre.trim(); if(!n) return;
+  await db.collection("edificios").doc(slug(n)).set({nombre:n});
+}
+async function borrarEdificio(id){ await db.collection("edificios").doc(id).delete(); }
+
+async function cargarTipificacion(){
+  const s = await db.collection("config").doc("tipificacion").get();
+  if(s.exists && Array.isArray(s.data().cats) && s.data().cats.length) return s.data().cats;
+  return null;
+}
+async function guardarTipificacion(cats, autor){
+  await db.collection("config").doc("tipificacion")
+    .set({cats, actualizadoEn:new Date().toISOString(), actualizadoPor:autor});
+}
+
+/* ---- Descarga de respaldos ---- */
+function descargarArchivo(nombre, contenido, tipo){
+  const blob = new Blob([contenido], {type:tipo});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = nombre; document.body.appendChild(a); a.click();
+  document.body.removeChild(a); setTimeout(()=>URL.revokeObjectURL(url), 3000);
+}
+const csvCampo = v => {
+  const s = (v===null||v===undefined) ? "" : String(v);
+  return /[";\n\r]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+};
+function casosACSV(casos){
+  const cab = ["Folio","Creado","Actualizado","Cerrado","Edificio","Unidad","Residente","Correo","Telefono",
+               "Area","Motivo","Prioridad","Responsable","Estatus","Relacionado con","Adjuntos","Mensajes","Descripcion"];
+  const filas = casos.map(t=>[
+    t.folio, t.createdAt, t.updatedAt, t.cerradoEn||"", t.edificio, t.unidad, t.nombre, t.email, t.telefono||"",
+    (FAMILIAS[t.familia]||{}).label||t.familia, t.categoria, t.prioridad, t.responsable, t.estatus,
+    t.relacionadoCon||"", (t.adjuntos||[]).length, (t.hilo||[]).length, t.descripcion
+  ].map(csvCampo).join(";"));
+  // El BOM hace que Excel muestre bien los acentos.
+  return "\uFEFF" + [cab.join(";"), ...filas].join("\r\n");
+}
+const hoyISO = () => new Date().toISOString().slice(0,10);
+
+/* ---- Adjuntos ---- */
+function validarArchivo(f){
+  if(f.size > ADJ_MAX_MB*1024*1024) return `«${f.name}» supera los ${ADJ_MAX_MB} MB.`;
+  if(!ADJ_TIPOS.some(t=>f.type.startsWith(t))) return `«${f.name}» no es una imagen ni un PDF.`;
+  return null;
+}
+async function subirAdjuntos(files, uid, onProgreso){
+  const out=[];
+  for(let i=0;i<files.length;i++){
+    const f=files[i];
+    const seguro = f.name.replace(/[^\w.\- ]/g,"_");
+    const ref = storage.ref().child(`casos/${uid}/${Date.now()}-${i}-${seguro}`);
+    const url = await new Promise((resolver,rechazar)=>{
+      const tarea = ref.put(f, {contentType: f.type || "application/octet-stream"});
+      tareaActual = tarea;
+      tarea.on("state_changed",
+        s => { if(onProgreso) onProgreso(i+1, files.length, Math.round((s.bytesTransferred/s.totalBytes)*100)); },
+        err => rechazar(err),
+        async () => { try{ resolver(await tarea.snapshot.ref.getDownloadURL()); }catch(e){ rechazar(e); } }
+      );
+    });
+    tareaActual = null;
+    out.push({nombre:f.name, url, tipo:f.type, tamano:f.size});
+  }
+  return out;
+}
+let tareaActual = null;
+function cancelarSubida(){ if(tareaActual){ try{ tareaActual.cancel(); }catch(e){} tareaActual=null; } }
+
+function traducirErrorStorage(e){
+  const c = (e && e.code) || "";
+  if(c==="storage/unauthorized")
+    return "El almacenamiento rechazó el archivo. Falta publicar las reglas de Storage, o el tipo o tamaño no está permitido.";
+  if(c==="storage/unauthenticated")
+    return "Tu sesión expiró. Vuelve a entrar e inténtalo otra vez.";
+  if(c==="storage/retry-limit-exceeded")
+    return "La subida tardó demasiado. Puede ser una conexión lenta, o que Cloud Storage no esté habilitado en el proyecto (requiere plan Blaze).";
+  if(c==="storage/canceled") return "Subida cancelada.";
+  if(c==="storage/quota-exceeded") return "Se superó la cuota de almacenamiento del proyecto.";
+  if(c==="storage/unknown")
+    return "Error de almacenamiento. Revisa que Cloud Storage esté habilitado y que las reglas estén publicadas.";
+  return (e && e.message) || "No se pudo subir el archivo.";
+}
+
+/* =========================================================================
+   4 · COMPONENTES REUTILIZABLES
+   ========================================================================= */
+function Field({label,req,err,hint,full,children}){
+  return <div className={"field"+(full?" full":"")}>
+    <label className="lbl">{label} {req&&<span className="req">*</span>} {hint&&<span className="hint" style={{fontWeight:400}}>· {hint}</span>}</label>
+    {children}{err&&<span className="hint" style={{color:"var(--emerg)"}}>{err}</span>}
+  </div>;
+}
+function EdificioInput({value,onResolve}){
+  const [text,setText]=useState(value||""); const [resolved,setResolved]=useState(value||null); const [msg,setMsg]=useState(null);
+  useEffect(()=>{ setText(value||""); setResolved(value||null); if(!value) setMsg(null); },[value]);
+  const doResolve=()=>{
+    if(text.trim()===""){ setResolved(null); setMsg(null); onResolve(""); return; }
+    const r=resolveEdificio(text);
+    if(r){ setText(r); setResolved(r); setMsg({ok:true,text:`Edificio reconocido: ${r}`}); onResolve(r); }
+    else { setResolved(null); setMsg({ok:false,text:"No encontramos un edificio con ese nombre. Revisa la escritura."}); onResolve(""); }
+  };
+  return (
+    <div className="ac-wrap">
+      <input className="ctrl" value={text} placeholder="Escribe el nombre de tu edificio…" autoComplete="off"
+        onChange={e=>{ setText(e.target.value); if(resolved||msg){ setResolved(null); setMsg(null); onResolve(""); } }}
+        onBlur={doResolve} onKeyDown={e=>{ if(e.key==="Enter"){ e.preventDefault(); e.target.blur(); } }}
+        style={resolved?{paddingRight:32}:null} />
+      {resolved && <span className="ac-ok">✓</span>}
+      {msg && <span className="hint" style={{color:msg.ok?"var(--cerrado)":"var(--emerg)"}}>{msg.text}</span>}
+    </div>
+  );
+}
+function MultiSelect({options,selected,onChange,label}){
+  const [open,setOpen]=useState(false); const [q,setQ]=useState(""); const ref=useRef(null);
+  useEffect(()=>{ const f=e=>{ if(ref.current&&!ref.current.contains(e.target)) setOpen(false); }; document.addEventListener("mousedown",f); return ()=>document.removeEventListener("mousedown",f); },[]);
+  const toggle=(o)=>onChange(selected.includes(o)?selected.filter(x=>x!==o):[...selected,o]);
+  const shown=options.filter(o=>norm(o).includes(norm(q)));
+  return (
+    <div className="ms-wrap" ref={ref}>
+      <button className={"ms-btn"+(selected.length?" on":"")} onClick={()=>setOpen(o=>!o)}>{label}: {selected.length===0?"Todos":selected.length+(selected.length===1?" edificio":" edificios")} ▾</button>
+      {open && (
+        <div className="ms-menu">
+          <input className="ctrl ms-search" placeholder="Buscar edificio…" value={q} onChange={e=>setQ(e.target.value)} />
+          <div className="ms-list">
+            {shown.map(o=><label key={o} className="ms-opt"><input type="checkbox" checked={selected.includes(o)} onChange={()=>toggle(o)} /> {o}</label>)}
+            {shown.length===0 && <div className="ac-empty">Sin coincidencias.</div>}
+          </div>
+          <div className="ms-foot"><button onClick={()=>onChange([])}>Limpiar</button><button onClick={()=>setOpen(false)}>Aplicar</button></div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* =========================================================================
+   5 · APP
+   ========================================================================= */
+function App(){
+  const [authReady,setAuthReady]=useState(false);
+  const [user,setUser]=useState(null);
+  const [role,setRole]=useState(null);          // "residente" | "admin" (elección de la pantalla inicial)
+  const [tickets,setTickets]=useState([]);
+  const [dataReady,setDataReady]=useState(false);
+  const [denied,setDenied]=useState(false);      // encargado no autorizado
+  const [denyInfo,setDenyInfo]=useState(null);   // diagnóstico del rechazo (código de error)
+  const [claims,setClaims]=useState(null);       // claims del token (diagnóstico)
+  const [linkSent,setLinkSent]=useState("");     // correo al que se envió el enlace
+  const [authError,setAuthError]=useState("");
+  const [view,setView]=useState("ingreso");
+  const [preEdificio,setPreEdificio]=useState(null);
+  const [maestros,setMaestros]=useState(false);
+  const [ver,setVer]=useState(0);   // fuerza redibujo cuando cambian los datos maestros
+  const [sel,setSel]=useState(null);
+  const [toasts,setToasts]=useState([]);
+
+  const toast=(msg,kind="ok")=>{ const id=Math.random(); setToasts(t=>[...t,{id,msg,kind}]); setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)),4200); };
+
+  // Rol preseleccionado desde el hash (#residente / #admin), p. ej. desde el QR.
+  useEffect(()=>{
+    const h=(location.hash||"").toLowerCase();
+    if(h.includes("admin")) setRole("admin"); else if(h.includes("resident")) setRole("residente");
+  },[]);
+
+  // Completar acceso por vínculo de correo / resultado de redirección Microsoft.
+  useEffect(()=>{
+    (async ()=>{
+      try{
+        if(auth.isSignInWithEmailLink(window.location.href)){
+          let email = window.localStorage.getItem("correoAcceso");
+          if(!email) email = window.prompt("Confirma tu correo para completar el acceso:");
+          if(email){
+            await auth.signInWithEmailLink(email, window.location.href);
+            window.localStorage.removeItem("correoAcceso");
+            setRole("residente");
+          }
+          history.replaceState(null,"", window.location.pathname);
+        } else {
+          await auth.getRedirectResult();
+        }
+      }catch(e){ setAuthError(traducirError(e)); }
+    })();
+  },[]);
+
+  // Estado de sesión.
+  useEffect(()=>{
+    return auth.onAuthStateChanged(u=>{ setUser(u); setAuthReady(true); });
+  },[]);
+
+  const esAdmin = user && user.providerData.some(p=>p.providerId==="microsoft.com");
+
+  // Suscripción a datos según el tipo de usuario.
+  useEffect(()=>{
+    if(!user){ setTickets([]); setDataReady(false); setDenied(false); setMaestros(false); return; }
+    setDataReady(false); setDenied(false);
+
+    // Datos maestros: si la base está vacía, seguimos con los valores por defecto del archivo.
+    (async()=>{
+      try{
+        const eds = await cargarEdificios();
+        if(eds.length) aplicarEdificios(eds.map(e=>e.nombre));
+        const cats = await cargarTipificacion();
+        if(cats) aplicarCats(cats);
+      }catch(e){ /* sin permisos o sin conexión: se usan los valores por defecto */ }
+      setMaestros(true);
+    })();
+
+    let unsub;
+    if(esAdmin){
+      setView("portal");
+      user.getIdTokenResult().then(r=>setClaims(r.claims)).catch(()=>{});
+      asegurarContador().catch(()=>{});
+      unsub = escucharTodos(
+        list=>{ setTickets(list); setDataReady(true); },
+        err=>{ setDenyInfo({code:(err&&err.code)||"desconocido"}); setDenied(true); setDataReady(true); }
+      );
+    } else {
+      setView("ingreso");
+      unsub = escucharMios(
+        user.email,
+        list=>{ setTickets(list); setDataReady(true); },
+        ()=> setDataReady(true)
+      );
+    }
+    return ()=>{ if(unsub) unsub(); };
+  },[user, esAdmin]);
+
+  const salir=async()=>{ await auth.signOut(); setRole(null); setSel(null); setLinkSent(""); setAuthError(""); try{location.hash="";}catch(e){} };
+
+  const enviarEnlace=async(email)=>{
+    setAuthError("");
+    const acs={ url: window.location.origin + window.location.pathname + "#residente", handleCodeInApp:true };
+    try{
+      await auth.sendSignInLinkToEmail(email, acs);
+      window.localStorage.setItem("correoAcceso", email);
+      setLinkSent(email);
+    }catch(e){ setAuthError(traducirError(e)); }
+  };
+  const entrarMicrosoft=async()=>{
+    setAuthError("");
+    const provider=new firebase.auth.OAuthProvider("microsoft.com");
+    provider.setCustomParameters({ tenant: MS_TENANT });
+    try{ await auth.signInWithPopup(provider); }
+    catch(e){
+      if(e && (e.code==="auth/popup-blocked"||e.code==="auth/cancelled-popup-request"||e.code==="auth/popup-closed-by-user")){
+        try{ await auth.signInWithRedirect(provider); return; }catch(e2){ setAuthError(traducirError(e2)); return; }
+      }
+      setAuthError(traducirError(e));
+    }
+  };
+
+  // ---- Operaciones sobre casos ----
+  const submitCase=async(data, onProgreso)=>{
+    const cat=CATMAP[data.catId]; let prioridad=cat.prioridad;
+    if(data.emergencia && prioridad!=="Emergencia") prioridad="Emergencia";
+    const now=new Date().toISOString();
+
+    let adjuntos=[];
+    if(data.archivos && data.archivos.length){
+      try{ adjuntos = await subirAdjuntos(data.archivos, user.uid, onProgreso); }
+      catch(e){ toast(traducirErrorStorage(e),"error"); return null; }
+    }
+
+    const base={ createdAt:now, updatedAt:now, edificio:data.edificio, unidad:data.unidad,
+      nombre:data.nombre, email:user.email, telefono:data.telefono||"",
+      catId:cat.id, familia:cat.fam, categoria:cat.label, prioridad, responsable:cat.resp, accion:cat.accion,
+      descripcion:data.descripcion, ubicacion:data.ubicacion||"", estatus:"Recibido", relacionadoCon:null,
+      adjuntos, hilo:[], acciones:[{tipo:"ingreso", detalle:`Caso ingresado y dirigido a ${cat.resp}.`, fecha:now, autor:data.nombre, autorEmail:user.email}] };
+    try{ const r=await crearCaso(base); toast(`Caso ${r.folio} registrado correctamente.`); return r; }
+    catch(e){ toast("No se pudo registrar el caso. Intenta nuevamente.","error"); return null; }
+  };
+  const updateTicket=async(id,patch,logMsg,kind="info",detalleLog)=>{
+    const cur=tickets.find(t=>t.id===id);
+    if(cur && cur.estatus==="Cerrado"){ toast("Un caso cerrado no puede modificarse. Genera un caso relacionado.","warn"); return; }
+    const full={...patch};
+    if(detalleLog){
+      full.acciones=[...((cur&&cur.acciones)||[]), {
+        tipo:"cambio", detalle:detalleLog, fecha:new Date().toISOString(),
+        autor:(user.displayName||user.email), autorEmail:user.email
+      }];
+    }
+    if(patch.estatus==="Cerrado") full.cerradoEn=new Date().toISOString();
+    try{ await actualizarCaso(id,full); if(sel&&sel.ticket.id===id) setSel(s=>({...s,ticket:{...s.ticket,...full}})); if(logMsg) toast(logMsg,kind); }
+    catch(e){ toast("No se pudo guardar el cambio.","error"); }
+  };
+  const crearRelacionado=async(orig,texto)=>{
+    const cat=CATMAP[orig.catId]; const now=new Date().toISOString();
+    const base={ createdAt:now, updatedAt:now, edificio:orig.edificio, unidad:orig.unidad,
+      nombre:orig.nombre, email:user.email, telefono:orig.telefono||"",
+      catId:orig.catId, familia:cat.fam, categoria:cat.label, prioridad:cat.prioridad, responsable:cat.resp, accion:"ticket",
+      descripcion:texto, ubicacion:orig.ubicacion||"", estatus:"Recibido", relacionadoCon:orig.folio, hilo:[],
+      acciones:[{tipo:"referencia", detalle:`Caso generado por disconformidad con el cierre del caso ${orig.folio}. Historial vinculado.`, fecha:now, autor:orig.nombre, autorEmail:user.email}] };
+    try{ const r=await crearCaso(base); toast(`Caso relacionado ${r.folio} creado y vinculado a ${orig.folio}.`); return {...base,id:r.id,folio:r.folio}; }
+    catch(e){ toast("No se pudo crear el caso relacionado.","error"); return null; }
+  };
+
+  /* ---- Render ---- */
+  if(!authReady) return <div className="loader">Cargando…</div>;
+
+  // Sin sesión: pantalla inicial y accesos.
+  if(!user){
+    if(!role) return <Landing choose={setRole} />;
+    if(role==="admin") return <AdminLogin onEntrar={entrarMicrosoft} onBack={()=>{setRole(null);setAuthError("");}} error={authError} />;
+    return <ResidentLogin onEnviar={enviarEnlace} enviado={linkSent} onBack={()=>{setRole(null);setLinkSent("");setAuthError("");}} error={authError} />;
+  }
+
+  // Encargado no autorizado (Microsoft válido pero no está en la lista de encargados).
+  if(esAdmin && denied) return <NoAutorizado user={user} claims={claims} denyInfo={denyInfo} onSalir={salir} />;
+
+  if(!dataReady || !maestros) return <div className="loader">Cargando casos…</div>;
+
+  const findRelated=(folio)=> tickets.filter(t=>t.relacionadoCon===folio);
+  const abiertos=tickets.filter(t=>t.estatus!=="Cerrado").length;
+  const porFolio=Object.fromEntries(tickets.map(t=>[t.folio,t]));
+  const navegar=(v)=>{ setPreEdificio(null); setView(v); };
+  const verCasosEdificio=(e)=>{ setPreEdificio(e); setView("portal"); };
+
+  return (
+    <div className="app">
+      <aside className="side">
+        <div className="brand">
+          <div className="mark">Cumbre Asesorías Ltda.</div>
+          <h1>Mesa de Casos</h1>
+          <div className="org">{esAdmin?"Administración":"Portal de residentes"}</div>
+        </div>
+        <nav className="nav">
+          {!esAdmin && <>
+            <NavBtn id="ingreso" cur={view} set={setView} ico="＋" label="Ingresar caso" />
+            <NavBtn id="miscasos" cur={view} set={setView} ico="≣" label="Mis casos" />
+          </>}
+          {esAdmin && <>
+            <NavBtn id="portal" cur={view} set={navegar} ico="≡" label="Bandeja" badge={abiertos||null} />
+            <NavBtn id="panel" cur={view} set={navegar} ico="▦" label="Panel" />
+            <NavBtn id="edificios" cur={view} set={navegar} ico="▩" label="Por edificio" />
+            <NavBtn id="reglas" cur={view} set={navegar} ico="▤" label="Configuración" />
+            <NavBtn id="ajustes" cur={view} set={navegar} ico="⚙" label="Ajustes" />
+          </>}
+        </nav>
+        <div className="foot">
+          <div className="who">{esAdmin?(user.displayName||user.email):user.email}</div>
+          <button className="exit" onClick={salir}>Cerrar sesión</button>
+        </div>
+      </aside>
+
+      <main className="main">
+        <div className="content">
+          {!esAdmin && view==="ingreso" && <Ingreso submitCase={submitCase} email={user.email} goMisCasos={()=>setView("miscasos")} />}
+          {!esAdmin && view==="miscasos" && <MisCasos tickets={tickets} email={user.email} onOpen={t=>setSel({ticket:t,mode:"residente"})} />}
+          {esAdmin && view==="portal" && <Portal tickets={tickets} porFolio={porFolio} initEd={preEdificio} onOpen={t=>setSel({ticket:t,mode:"admin"})} />}
+          {esAdmin && view==="panel" && <Panel tickets={tickets} porFolio={porFolio} onOpen={t=>setSel({ticket:t,mode:"admin"})} goPortal={()=>navegar("portal")} />}
+          {esAdmin && view==="edificios" && <PanelEdificios tickets={tickets} porFolio={porFolio} verCasos={verCasosEdificio} />}
+          {esAdmin && view==="reglas" && <Configuracion user={user} puedeEditar={ADMIN_SISTEMA.includes(norm(user.email))} onCambio={()=>setVer(v=>v+1)} ver={ver} toast={toast} />}
+          {esAdmin && view==="ajustes" && <Ajustes user={user} tickets={tickets} toast={toast} />}
+        </div>
+      </main>
+
+      {sel && <Detail entry={sel} porFolio={porFolio} onClose={()=>setSel(null)} update={updateTicket} crearRelacionado={crearRelacionado} related={findRelated(sel.ticket.folio)} openTicketByFolio={(f)=>{const t=tickets.find(x=>x.folio===f); if(t) setSel({ticket:t,mode:sel.mode});}} />}
+      <div className="toasts">{toasts.map(t=><div key={t.id} className={"toast "+t.kind}><span className="tk"></span><span>{t.msg}</span></div>)}</div>
+    </div>
+  );
+}
+
+const HOST = (typeof location!=="undefined") ? location.hostname : "";
+const ES_LOCAL = ["localhost","127.0.0.1"].includes(HOST);
+const SIN_HTTPS = (typeof location!=="undefined") && location.protocol==="http:" && !ES_LOCAL;
+
+function traducirError(e){
+  const c=e&&e.code||"";
+  if(c==="auth/unauthorized-domain") return `El dominio ${HOST} no está autorizado. Agrégalo en Firebase → Authentication → Configuración → Dominios autorizados.`;
+  if(c==="auth/quota-exceeded") return "Se alcanzó el límite diario de enlaces de acceso. El plan gratuito de Firebase permite solo 5 al día en todo el sistema. Para uso real hay que activar el plan Blaze (sube el límite a 25.000 diarios).";
+  if(c==="auth/too-many-requests") return "Demasiados intentos seguidos. Espera unos minutos e inténtalo de nuevo.";
+  if(c==="auth/operation-not-allowed") return "El proveedor de acceso no está habilitado en Firebase.";
+  if(c==="auth/invalid-email") return "El correo no es válido.";
+  if(c==="auth/account-exists-with-different-credential") return "Ya existe una cuenta con ese correo usando otro método.";
+  return (e&&e.message) || "Ocurrió un error de autenticación.";
+}
+
+/* Aviso: sin HTTPS el inicio de sesión no puede funcionar. */
+function AvisoHttps(){
+  if(!SIN_HTTPS) return null;
+  return (
+    <div className="warn-box">
+      <div className="wt"><span className="wic">🔒</span><span>Falta HTTPS en este sitio</span></div>
+      <p>Estás en <b>http://{HOST}</b>. El inicio de sesión solo funciona sobre <b>https</b>.</p>
+      <p>Si el sitio está en GitHub Pages, espera a que se emita el certificado y activa <b>Enforce HTTPS</b>. Luego entra por <span className="sender">https://{HOST}</span></p>
+    </div>
+  );
+}
+
+function NavBtn({id,cur,set,ico,label,badge}){
+  return <button className={cur===id?"active":""} onClick={()=>set(id)}><span className="ico" aria-hidden>{ico}</span><span>{label}</span>{badge?<span className="badge">{badge}</span>:null}</button>;
+}
+
+/* ========================= PANTALLAS DE ACCESO ========================= */
+function Landing({choose}){
+  return (
+    <div className="center-wrap"><div className="landing">
+      <div className="lead">
+        <div className="mark">Cumbre Asesorías Ltda.</div>
+        <h1>Mesa de Casos</h1>
+        <p>Canaliza, clasifica y resuelve las solicitudes de los residentes.</p>
+      </div>
+      <div className="role-cards">
+        <button className="role-card" onClick={()=>choose("residente")}>
+          <div className="rc-ic">🏠</div><h3>Soy residente</h3>
+          <p>Ingresa un caso a tu administración y sigue su estado. Entras con tu correo, sin contraseña.</p>
+          <span className="go">Entrar →</span>
+        </button>
+        <button className="role-card" onClick={()=>choose("admin")}>
+          <div className="rc-ic">🗂️</div><h3>Administración</h3>
+          <p>Gestiona los casos de todos los edificios. Acceso con tu cuenta corporativa de Microsoft.</p>
+          <span className="go">Iniciar sesión →</span>
+        </button>
+      </div>
+    </div></div>
+  );
+}
+
+function AdminLogin({onEntrar,onBack,error}){
+  return (
+    <div className="center-wrap"><div className="login-card">
+      <div className="mark" style={{fontSize:11,letterSpacing:".16em",textTransform:"uppercase",color:"var(--primary)",fontWeight:700}}>Administración</div>
+      <h2>Iniciar sesión</h2><div className="sub">Usa tu cuenta corporativa @cumbregi.com.</div>
+      <AvisoHttps />
+      <button className="msbtn" onClick={onEntrar}><span className="ms-logo"><i></i><i></i><i></i><i></i></span> Continuar con Microsoft</button>
+      {error && <div className="err-box">{error}</div>}
+      <button className="btn ghost block" onClick={onBack} style={{marginTop:12}}>← Volver</button>
+      <div className="note-info">Solo pueden ingresar las cuentas autorizadas en la lista de encargados. Si tu cuenta no está habilitada, contáctate con la administración.</div>
+    </div></div>
+  );
+}
+
+function ResidentLogin({onEnviar,enviado,onBack,error}){
+  const [email,setEmail]=useState(""); const [err,setErr]=useState("");
+  const enviar=()=>{ if(!/^\S+@\S+\.\S+$/.test(email)){ setErr("Ingresa un correo válido."); return; } setErr(""); onEnviar(email.trim().toLowerCase()); };
+  if(enviado){
+    return (
+      <div className="center-wrap"><div className="login-card">
+        <div className="conf" style={{padding:0}}><div className="ok" style={{margin:"0 auto 14px"}}>✉️</div></div>
+        <h2>Revisa tu correo</h2>
+        <div className="sub">Enviamos un enlace de acceso a <b>{enviado}</b>. Ábrelo desde este mismo dispositivo para entrar.</div>
+
+        <div className="warn-box">
+          <div className="wt"><span className="wic">⚠️</span><span>Revisa tu carpeta de spam o correo no deseado</span></div>
+          <p><b>El correo casi siempre llega ahí.</b> Si no lo ves en tu bandeja de entrada en un minuto, búscalo en <b>Spam</b>, <b>Correo no deseado</b> o <b>Promociones</b>.</p>
+          <p>Llega de parte de <b>{REMITENTE_NOMBRE}</b>, desde esta dirección:</p>
+          <p><span className="sender">{REMITENTE}</span></p>
+          <p>Cuando lo encuentres, marca <b>«No es spam»</b> y agrega el remitente a tus contactos. Así los próximos correos llegarán directo a tu bandeja.</p>
+        </div>
+
+        <div className="hint" style={{marginBottom:12}}>El enlace vence en poco tiempo por seguridad. Si expira, pide uno nuevo.</div>
+        <button className="btn" onClick={()=>onEnviar(enviado)} style={{width:"100%",marginBottom:8}}>Reenviar el enlace</button>
+        <button className="btn ghost block" onClick={onBack}>← Volver</button>
+      </div></div>
+    );
+  }
+  return (
+    <div className="center-wrap"><div className="login-card">
+      <div className="mark" style={{fontSize:11,letterSpacing:".16em",textTransform:"uppercase",color:"var(--primary)",fontWeight:700}}>Portal de residentes</div>
+      <h2>Entrar</h2><div className="sub">Te enviaremos un enlace de acceso a tu correo. No necesitas contraseña.</div>
+      <AvisoHttps />
+      <Field label="Tu correo" req err={err}><input className="ctrl" type="email" placeholder="tu@correo.cl" value={email} onChange={e=>{setEmail(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&enviar()} /></Field>
+      <button className="btn primary block" onClick={enviar}>Enviarme el enlace</button>
+      <div className="warn-inline"><b>Ojo:</b> el correo suele llegar a la carpeta de <b>spam o correo no deseado</b>. Revísala si no lo ves en tu bandeja.</div>
+      {error && <div className="err-box">{error}</div>}
+      <button className="btn ghost block" onClick={onBack} style={{marginTop:10}}>← Volver</button>
+    </div></div>
+  );
+}
+
+function NoAutorizado({user,claims,denyInfo,onSalir}){
+  const prov = user && user.providerData && user.providerData[0] ? user.providerData[0].providerId : "—";
+  const tokenEmail = claims ? (claims.email || "(vacío)") : "…";
+  const tokenProv = claims && claims.firebase ? claims.firebase.sign_in_provider : "…";
+  return (
+    <div className="center-wrap"><div className="login-card">
+      <h2>Cuenta sin acceso</h2>
+      <div className="sub">La cuenta <b>{user?user.email:""}</b> inició sesión, pero la base de datos rechazó el acceso. Comparte estos detalles técnicos si necesitas ayuda para resolverlo.</div>
+      <div className="note-info" style={{textAlign:"left",fontFamily:"var(--mono)",fontSize:12,lineHeight:1.8,wordBreak:"break-all"}}>
+        correo (perfil): {user?user.email:"—"}<br/>
+        proveedor (perfil): {prov}<br/>
+        token · correo: {tokenEmail}<br/>
+        token · proveedor: {tokenProv}<br/>
+        error base de datos: {denyInfo?denyInfo.code:"—"}
+      </div>
+      <button className="btn primary block" onClick={onSalir} style={{marginTop:14}}>Cerrar sesión</button>
+    </div></div>
+  );
+}
+
+/* ========================= INGRESO (RESIDENTE) ========================= */
+function Ingreso({submitCase,email,goMisCasos}){
+  const empty={edificio:"",unidad:"",nombre:"",telefono:"",fam:"",catId:"",descripcion:"",ubicacion:"",emergencia:false};
+  const [f,setF]=useState(empty); const [errors,setErrors]=useState({}); const [done,setDone]=useState(null); const [saving,setSaving]=useState(false);
+  const [archivos,setArchivos]=useState([]); const [errFiles,setErrFiles]=useState(""); const [progreso,setProgreso]=useState(null);
+  const [pct,setPct]=useState(0); const [estancado,setEstancado]=useState(false); const [falloSubida,setFalloSubida]=useState("");
+
+  // Si a los 12 segundos no se ha transferido ni un byte, el problema no es la conexión.
+  useEffect(()=>{
+    if(!saving || !archivos.length){ setEstancado(false); return; }
+    const t=setTimeout(()=>{ if(pct===0) setEstancado(true); }, 12000);
+    return ()=>clearTimeout(t);
+  },[saving,pct,archivos.length]);
+  const set=(k,v)=>setF(s=>({...s,[k]:v}));
+  const cat=f.catId?CATMAP[f.catId]:null; const catsOfFam=f.fam?CATS.filter(c=>c.fam===f.fam):[];
+  const prioridad=cat?(f.emergencia&&cat.prioridad!=="Emergencia"?"Emergencia":cat.prioridad):null;
+  const accionTxt={ticket:"Reclamo registrado y notificado al responsable",consulta:"Registro informativo para gestión"};
+
+  const onFiles=(e)=>{
+    const nuevos=Array.from(e.target.files||[]); e.target.value="";
+    if(!nuevos.length) return;
+    if(archivos.length+nuevos.length > ADJ_MAX_ARCHIVOS){ setErrFiles(`Puedes adjuntar hasta ${ADJ_MAX_ARCHIVOS} archivos.`); return; }
+    for(const n of nuevos){ const er=validarArchivo(n); if(er){ setErrFiles(er); return; } }
+    setErrFiles(""); setArchivos(a=>[...a,...nuevos]);
+  };
+  const quitar=(i)=>{ setArchivos(a=>a.filter((_,k)=>k!==i)); setErrFiles(""); };
+
+  const submit=async(sinAdjuntos)=>{
+    const er={};
+    ["unidad","nombre","fam","catId","descripcion"].forEach(k=>{ if(!f[k]) er[k]="Requerido"; });
+    if(!f.edificio) er.edificio="Selecciona un edificio válido";
+    setErrors(er); if(Object.keys(er).length) return;
+    const adj = sinAdjuntos===true ? [] : archivos;
+    setSaving(true); setPct(0); setEstancado(false); setFalloSubida("");
+    const r=await submitCase({...f, archivos:adj}, (n,total,porcentaje)=>{
+      setPct(porcentaje);
+      setProgreso(total>1 ? `Subiendo adjunto ${n} de ${total} · ${porcentaje}%` : `Subiendo · ${porcentaje}%`);
+    });
+    setSaving(false); setProgreso(null); setPct(0); setEstancado(false);
+    if(r){ setDone(r); window.scrollTo({top:0,behavior:"smooth"}); }
+    else if(adj.length){ setFalloSubida("No se pudieron subir los adjuntos. Puedes enviar el caso sin ellos y adjuntarlos después, cuando el almacenamiento esté habilitado."); }
+  };
+
+  if(done){
+    return (
+      <div className="card pad conf fadein">
+        <div className="ok">✓</div><h3>Recibimos tu caso</h3>
+        <p style={{color:"var(--muted)",margin:0}}>Guarda este folio para hacer seguimiento en «Mis casos».</p>
+        <div className="folio-lg">{done.folio}</div>
+        <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
+          <button className="btn primary" onClick={()=>{setDone(null);setF(empty);setErrors({});}}>Ingresar otro caso</button>
+          <button className="btn ghost" onClick={goMisCasos}>Ver mis casos</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="view-head"><div className="kicker">Portal de residentes</div><h2>Ingresar un caso</h2><p>Cuéntanos qué ocurre. El sistema clasifica tu caso, define la prioridad y lo dirige al responsable correcto de forma automática.</p></div>
+      <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) 300px",gap:22,alignItems:"start"}} className="ingreso-layout">
+        <div className="card pad">
+          <div className="sect-label">1 · Tus datos</div>
+          <div className="form-grid">
+            <Field label="Edificio" req err={errors.edificio} hint="Escríbelo; lo validamos al terminar">
+              <EdificioInput value={f.edificio} onResolve={v=>set("edificio",v)} />
+            </Field>
+            <Field label="Unidad / Depto" req err={errors.unidad}><input className="ctrl" placeholder="Ej: 1204" value={f.unidad} onChange={e=>set("unidad",e.target.value)} /></Field>
+            <Field label="Nombre" req err={errors.nombre}><input className="ctrl" value={f.nombre} onChange={e=>set("nombre",e.target.value)} /></Field>
+            <Field label="Correo" hint="Con este correo sigues tus casos"><input className="ctrl" type="email" value={email} disabled /></Field>
+            <Field label="Teléfono" hint="Opcional"><input className="ctrl" value={f.telefono} onChange={e=>set("telefono",e.target.value)} /></Field>
+          </div>
+          <div className="sect-label" style={{marginTop:8}}>2 · Motivo</div>
+          <div className="form-grid">
+            <Field label="Categoría general" req err={errors.fam}>
+              <select className="ctrl" value={f.fam} onChange={e=>{set("fam",e.target.value);set("catId","");}}><option value="">Selecciona…</option>{Object.entries(FAMILIAS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
+            </Field>
+            <Field label="Motivo específico" req err={errors.catId}>
+              <select className="ctrl" value={f.catId} onChange={e=>set("catId",e.target.value)} disabled={!f.fam}><option value="">{f.fam?"Selecciona…":"Elige primero una categoría"}</option>{catsOfFam.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</select>
+            </Field>
+          </div>
+          <Field label="Ubicación exacta" hint="Piso, ascensor, estacionamiento…" full><input className="ctrl" value={f.ubicacion} onChange={e=>set("ubicacion",e.target.value)} /></Field>
+          <Field label="Descripción" req err={errors.descripcion} full><textarea className="ctrl" placeholder="Describe el problema con el mayor detalle posible." value={f.descripcion} onChange={e=>set("descripcion",e.target.value)} /></Field>
+          <label className="check"><input type="checkbox" checked={f.emergencia} onChange={e=>set("emergencia",e.target.checked)} /><span className="t"><b>Es una situación de emergencia en curso</b><br/><span className="hint">Riesgo para las personas o el edificio. Elevaremos la prioridad al máximo.</span></span></label>
+
+          <div className="sect-label" style={{marginTop:22}}>3 · Adjuntos</div>
+          <div className="field full">
+            <label className="lbl">Fotos o documentos <span className="hint" style={{fontWeight:400}}>· opcional · hasta {ADJ_MAX_ARCHIVOS} archivos de {ADJ_MAX_MB} MB · imágenes o PDF</span></label>
+            <input className="ctrl" type="file" multiple accept="image/*,application/pdf" onChange={onFiles} disabled={saving} />
+            {errFiles && <span className="hint" style={{color:"var(--emerg)"}}>{errFiles}</span>}
+            {archivos.length===0 && <span className="hint">Una foto del problema ayuda a resolverlo más rápido.</span>}
+            {archivos.length>0 && <div className="adj-list" style={{marginTop:9}}>
+              {archivos.map((a,i)=>(<div key={i} className="adj-item">
+                <span className="adj-ic">{a.type.startsWith("image/")?"🖼️":"📄"}</span>
+                <span className="adj-nm">{a.name}</span>
+                <span className="adj-sz">{(a.size/1048576).toFixed(1)} MB</span>
+                <button className="adj-rm" onClick={()=>quitar(i)} disabled={saving} aria-label={"Quitar "+a.name}>✕</button>
+              </div>))}
+            </div>}
+          </div>
+
+          {saving && archivos.length>0 && <div style={{marginTop:16}}>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:12.5,color:"var(--muted)",marginBottom:5}}>
+              <span>{progreso||"Preparando…"}</span><span className="mono">{pct}%</span>
+            </div>
+            <div className="bar"><span style={{width:pct+"%",transition:"width .25s"}}></span></div>
+            {estancado && <div className="warn-inline" style={{marginTop:10}}>
+              <b>La subida no está avanzando.</b> No es tu conexión: es probable que Cloud Storage no esté habilitado
+              en el proyecto, o que falten publicar las reglas de almacenamiento. Puedes cancelar y enviar el caso sin adjuntos.
+            </div>}
+            <div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}>
+              <button className="btn ghost sm" onClick={cancelarSubida}>Cancelar subida</button>
+            </div>
+          </div>}
+
+          {falloSubida && !saving && <div className="err-box" style={{marginTop:14}}>
+            <div style={{marginBottom:10}}>{falloSubida}</div>
+            <button className="btn sm" onClick={()=>submit(true)}>Enviar el caso sin adjuntos</button>
+          </div>}
+
+          <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",gap:12,marginTop:20}}>
+            {progreso && !archivos.length && <span className="hint">{progreso}</span>}
+            <button className="btn primary" onClick={()=>submit(false)} disabled={saving}>{saving?(archivos.length?"Subiendo…":"Enviando…"):"Enviar caso"}</button>
+          </div>
+        </div>
+        <div className={"triage"+(cat?"":" empty")}>
+          <div className="th"><span className="dot"></span><h4>Clasificación automática</h4></div>
+          <div className="tb">
+            {!cat && <span>Al elegir el motivo verás aquí cómo se clasificará el caso: prioridad, responsable y qué hará el sistema.</span>}
+            {cat && <div className="fadein" key={f.catId+f.emergencia}>
+              <div className="trow"><span className="k">Área</span><span className="v">{FAMILIAS[cat.fam].label}</span></div>
+              <div className="trow"><span className="k">Prioridad</span><span className="v"><Pill kind={prioClass(prioridad)} text={prioridad} /></span></div>
+              <div className="trow"><span className="k">Responsable</span><span className="v">{cat.resp}</span></div>
+              <div className="trow"><span className="k">Acción</span><span className="v" style={{fontWeight:500,fontSize:13,color:"var(--muted)"}}>{accionTxt[cat.accion]||"Registro para gestión"}</span></div>
+            </div>}
+          </div>
+        </div>
+      </div>
+      <style>{`@media(max-width:900px){.ingreso-layout{grid-template-columns:1fr!important}}`}</style>
+    </div>
+  );
+}
+
+/* ========================= MIS CASOS (RESIDENTE) ========================= */
+function MisCasos({tickets,email,onOpen}){
+  const mine=[...tickets].sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt));
+  return (
+    <div>
+      <div className="view-head"><div className="kicker">Portal de residentes</div><h2>Mis casos</h2><p>Casos asociados a <b>{email}</b>.</p></div>
+      {mine.length===0
+        ? <div className="card"><div className="empty-state"><div className="em-ic">✧</div>Aún no tienes casos ingresados.<br/><span className="hint">Cuando ingreses uno, aparecerá aquí con su estado.</span></div></div>
+        : <div className="caselist">{mine.map(t=>(
+            <button key={t.id} className={"caserow "+(t.prioridad==="Emergencia"?"b-emerg":t.prioridad==="Alta"?"b-alta":"")} onClick={()=>onOpen(t)}>
+              <div><div className="folio mono">{t.folio}</div><div style={{marginTop:6}}><Pill kind={prioClass(t.prioridad)} text={t.prioridad} /></div></div>
+              <div><div className="tt">{t.categoria}</div><div className="meta">{t.edificio} · Depto {t.unidad} · {relDays(t.createdAt)}{t.relacionadoCon?" · relaciona "+t.relacionadoCon:""}</div></div>
+              <div className="rt"><Pill kind={statClass(t.estatus)} text={t.estatus} /></div>
+            </button>))}</div>}
+    </div>
+  );
+}
+
+/* ========================= BANDEJA (ADMIN) ========================= */
+function Portal({tickets,porFolio,initEd,onOpen}){
+  const [fEstatus,setFEstatus]=useState("Abiertos"); const [fPrio,setFPrio]=useState("Todas"); const [fArea,setFArea]=useState("Todas"); const [q,setQ]=useState("");
+  const [eds,setEds]=useState(initEd?[initEd]:[]); const [fEdad,setFEdad]=useState("Todas"); const [orden,setOrden]=useState("prioridad");
+  const estatuses=["Abiertos","Recibido","En proceso","Cerrado","Todos"]; const prios=["Todas","Emergencia","Alta","Media","Baja"];
+  const list=useMemo(()=>tickets.filter(t=>{
+    if(fEstatus==="Abiertos" && t.estatus==="Cerrado") return false;
+    if(!["Abiertos","Todos"].includes(fEstatus) && t.estatus!==fEstatus) return false;
+    if(fPrio!=="Todas" && t.prioridad!==fPrio) return false;
+    if(fArea!=="Todas" && t.familia!==fArea) return false;
+    if(eds.length && !eds.includes(t.edificio)) return false;
+    if(fEdad!=="Todas"){ const b=BUCKETS.find(x=>x.k===fEdad); if(b && !b.test(dias(msAcumulado(t,porFolio||{})))) return false; }
+    if(q){ const s=((t.folio||"")+(t.nombre||"")+(t.categoria||"")+(t.edificio||"")+(t.unidad||"")+(t.descripcion||"")).toLowerCase(); if(!s.includes(q.toLowerCase())) return false; }
+    return true;
+  }),[tickets,fEstatus,fPrio,fArea,q,eds,fEdad,porFolio]);
+  const order={Emergencia:0,Alta:1,Media:2,Baja:3};
+  const sorted=[...list].sort((a,b)=>
+    orden==="antiguedad"
+      ? msAcumulado(b,porFolio||{}) - msAcumulado(a,porFolio||{})
+      : (order[a.prioridad]-order[b.prioridad])||(new Date(b.updatedAt)-new Date(a.updatedAt))
+  );
+  return (
+    <div>
+      <div className="view-head"><div className="kicker">Administración</div><h2>Bandeja de casos</h2><p>Todos los edificios en una sola vista. Filtra por edificio, área, prioridad, estado o antigüedad.</p></div>
+      <div className="filters">
+        {estatuses.map(s=><button key={s} className={"chip"+(fEstatus===s?" active":"")} onClick={()=>setFEstatus(s)}>{s}</button>)}
+        <div style={{width:1,height:22,background:"var(--line)"}}></div>
+        <MultiSelect options={EDIFICIOS} selected={eds} onChange={setEds} label="Edificios" />
+        <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={fArea} onChange={e=>setFArea(e.target.value)}><option value="Todas">Todas las áreas</option>{Object.entries(FAMILIAS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
+        <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={fPrio} onChange={e=>setFPrio(e.target.value)}>{prios.map(p=><option key={p}>{p==="Todas"?"Todas las prioridades":p}</option>)}</select>
+        <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={fEdad} onChange={e=>setFEdad(e.target.value)}>
+          <option value="Todas">Toda antigüedad</option>
+          {BUCKETS.map(b=><option key={b.k} value={b.k}>{b.k}</option>)}
+        </select>
+        <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={orden} onChange={e=>setOrden(e.target.value)}>
+          <option value="prioridad">Ordenar por prioridad</option>
+          <option value="antiguedad">Ordenar por antigüedad</option>
+        </select>
+        <input className="ctrl search" placeholder="Buscar por folio, nombre, unidad…" value={q} onChange={e=>setQ(e.target.value)} />
+      </div>
+      <div className="hint" style={{marginBottom:12}}>{sorted.length} caso{sorted.length!==1?"s":""}{eds.length?` · ${eds.join(", ")}`:" · todos los edificios"}{fEdad!=="Todas"?` · ${fEdad}`:""}</div>
+      {sorted.length===0
+        ? <div className="card"><div className="empty-state"><div className="em-ic">✧</div>No hay casos con estos filtros.</div></div>
+        : <div className="caselist">{sorted.map(t=>(
+            <button key={t.id} className={"caserow "+(t.prioridad==="Emergencia"?"b-emerg":t.prioridad==="Alta"?"b-alta":"")} onClick={()=>onOpen(t)}>
+              <div><div className="folio mono">{t.folio}</div><div style={{marginTop:6}}><Pill kind={prioClass(t.prioridad)} text={t.prioridad} /></div></div>
+              <div><div className="tt">{t.categoria} {t.relacionadoCon&&<span className="ref-tag">↩ {t.relacionadoCon}</span>}</div><div className="meta">{t.edificio} · Depto {t.unidad} · {t.nombre} · {relDays(t.createdAt)}</div></div>
+              <div className="rt"><Pill kind={statClass(t.estatus)} text={t.estatus} />{t.estatus!=="Cerrado" && <span className={"edad "+edadClass(dias(msCaso(t)))}>{fmtDur(msCaso(t))}</span>}<span className="hint">{t.responsable}</span></div>
+            </button>))}</div>}
+    </div>
+  );
+}
+
+/* ========================= DETALLE ========================= */
+function Detail({entry,porFolio,onClose,update,crearRelacionado,related,openTicketByFolio}){
+  const {ticket:t,mode}=entry; const isAdmin=mode==="admin"; const isClosed=t.estatus==="Cerrado";
+  const [resp,setResp]=useState(""); const [reabrir,setReabrir]=useState(false); const [reText,setReText]=useState("");
+  const propio=msCaso(t); const acumulado=msAcumulado(t, porFolio||{}); const enCadena=(porFolio&&t.relacionadoCon)?true:false;
+  const addStaff=()=>{
+    if(!resp.trim())return;
+    const patch={hilo:[...(t.hilo||[]),{autor:t.responsable,rol:"staff",mensaje:resp.trim(),fecha:new Date().toISOString()}]};
+    let detalle="Registró una respuesta al residente.";
+    if(t.estatus==="Recibido"){ patch.estatus="En proceso"; detalle="Registró una respuesta y pasó el caso a «En proceso»."; }
+    update(t.id,patch,"Respuesta registrada.","ok",detalle); setResp("");
+  };
+  const setStatus=(s)=>update(t.id,{estatus:s},`Estatus actualizado a «${s}».`,"info",`Cambió el estatus de «${t.estatus}» a «${s}».`);
+  const doRelacionado=async()=>{ if(!reText.trim())return; const nt=await crearRelacionado(t,reText.trim()); setReabrir(false); setReText(""); if(nt) openTicketByFolio(nt.folio); };
+  return (
+    <div className="scrim" onClick={onClose}>
+      <div className="drawer" onClick={e=>e.stopPropagation()}>
+        <div className="dr-head"><div className="top">
+          <div>
+            <span className="folio mono" style={{color:"var(--muted)",fontSize:12}}>{t.folio}</span>
+            <h3>{t.categoria}</h3>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+              <Pill kind={prioClass(t.prioridad)} text={t.prioridad} /><Pill kind={statClass(t.estatus)} text={t.estatus} />
+              {t.relacionadoCon && <button className="ref-tag" onClick={()=>openTicketByFolio(t.relacionadoCon)}>↩ relaciona {t.relacionadoCon}</button>}
+            </div>
+          </div>
+          <button className="dr-close" onClick={onClose}>✕</button>
+        </div></div>
+        <div className="dr-body">
+          <dl className="kv">
+            <dt>Área</dt><dd>{FAMILIAS[t.familia].label}</dd>
+            <dt>Responsable</dt><dd>{t.responsable}</dd>
+            <dt>Edificio</dt><dd>{t.edificio}</dd>
+            <dt>Unidad</dt><dd className="mono">{t.unidad}</dd>
+            {isAdmin && <><dt>Solicitante</dt><dd>{t.nombre}</dd><dt>Contacto</dt><dd>{t.email}{t.telefono?" · "+t.telefono:""}</dd></>}
+            {t.ubicacion?<><dt>Ubicación</dt><dd>{t.ubicacion}</dd></>:null}
+            <dt>Ingresado</dt><dd>{fmtDate(t.createdAt)}</dd>
+          </dl>
+
+          {isAdmin && <>
+            <div className="block-title" style={{marginTop:0}}>Tiempo transcurrido</div>
+            <div className="tiempos">
+              <div className="tiempo-card">
+                <div className="tl">{isClosed?"Duración del caso":"Abierto hace"}</div>
+                <div className="tv">{fmtDur(propio)}</div>
+              </div>
+              <div className="tiempo-card">
+                <div className="tl">Acumulado {enCadena?"(con cadena)":""}</div>
+                <div className="tv">{fmtDur(acumulado)}</div>
+              </div>
+            </div>
+            {enCadena && <div className="hint" style={{marginTop:-2,marginBottom:6}}>Suma el tiempo de este caso y el de los casos anteriores a los que hace referencia.</div>}
+
+            <div className="block-title">Estatus del caso</div>
+            {isClosed
+              ? <div className="locknote"><span>🔒</span><span>Este caso está <b>cerrado</b>: no puede modificarse ni reabrirse. Si el problema persiste, el residente puede generar un caso relacionado que conserva el historial.</span></div>
+              : <div className="status-actions">{["Recibido","En proceso","Cerrado"].map(s=><button key={s} className={"btn sm"+(t.estatus===s?" primary":"")} onClick={()=>setStatus(s)}>{s}</button>)}</div>}
+            {!isClosed && <>
+              <div className="block-title">Responsable asignado</div>
+              <select className="ctrl" value={t.responsable} onChange={e=>update(t.id,{responsable:e.target.value},`Reasignado a ${e.target.value}.`,"info",`Reasignó el caso de ${t.responsable} a ${e.target.value}.`)}>{RESPONSABLES.map(r=><option key={r}>{r}</option>)}</select>
+            </>}
+          </>}
+
+          {!isAdmin && <div className="tiempos" style={{gridTemplateColumns:"1fr"}}>
+            <div className="tiempo-card">
+              <div className="tl">{isClosed?"Duración del caso":"Tu caso lleva abierto"}</div>
+              <div className="tv">{fmtDur(propio)}</div>
+            </div>
+          </div>}
+
+          {related && related.length>0 && <>
+            <div className="block-title">Casos relacionados</div>
+            <div className="caselist">{related.map(r=>(
+              <button key={r.id} className="caserow" onClick={()=>openTicketByFolio(r.folio)}>
+                <div><div className="folio mono">{r.folio}</div></div>
+                <div><div className="tt" style={{fontSize:13}}>{r.categoria}</div><div className="meta">reapertura · {relDays(r.createdAt)}</div></div>
+                <div className="rt"><Pill kind={statClass(r.estatus)} text={r.estatus} /></div>
+              </button>))}</div>
+          </>}
+
+          {(t.adjuntos && t.adjuntos.length>0) && <>
+            <div className="block-title">Adjuntos</div>
+            <div className="adj-list">
+              {t.adjuntos.map((a,i)=>(
+                <a key={i} className="adj-item" href={a.url} target="_blank" rel="noopener noreferrer">
+                  <span className="adj-ic">{a.tipo&&a.tipo.startsWith("image/")?"🖼️":"📄"}</span>
+                  <span className="adj-nm">{a.nombre}</span>
+                  <span className="adj-sz">{(a.tamano/1048576).toFixed(1)} MB</span>
+                </a>))}
+            </div>
+          </>}
+
+          <div className="block-title">Conversación</div>
+          <div className="thread">
+            <div className="msg"><div className="who"><span>{t.nombre}</span><span className="tm">{fmtDate(t.createdAt)}</span></div><div className="tx">{t.descripcion}</div></div>
+            {(t.hilo||[]).map((m,i)=><div key={i} className={"msg "+(m.rol==="staff"?"staff":"")}><div className="who"><span>{m.autor}{m.rol==="staff"?" · administración":""}</span><span className="tm">{fmtDate(m.fecha)}</span></div><div className="tx">{m.mensaje}</div></div>)}
+          </div>
+
+          {isClosed
+            ? (isAdmin
+                ? <div className="locknote" style={{marginTop:12}}><span>🔒</span><span>Conversación cerrada. No se pueden registrar más respuestas en este caso.</span></div>
+                : (related && related.length>0
+                    ? <div className="locknote" style={{marginTop:12}}><span>ℹ️</span><span>Este caso está cerrado. Ya existe un caso relacionado ({related.map(r=>r.folio).join(", ")}) que la administración está revisando.</span></div>
+                    : (!reabrir
+                        ? <div style={{marginTop:12}}><div className="locknote" style={{marginBottom:10}}><span>🔒</span><span>Este caso fue cerrado y no admite más mensajes. Si el problema no se resolvió, genera un caso relacionado que conserva el historial.</span></div><button className="btn" onClick={()=>setReabrir(true)}>El problema persiste · generar caso relacionado</button></div>
+                        : <div className="card pad" style={{marginTop:12,background:"#fff"}}><Field label="¿Qué sigue ocurriendo?" req><textarea className="ctrl" placeholder="Explica por qué consideras que el caso no está resuelto." value={reText} onChange={e=>setReText(e.target.value)} /></Field><div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><button className="btn ghost sm" onClick={()=>setReabrir(false)}>Cancelar</button><button className="btn primary sm" onClick={doRelacionado} disabled={!reText.trim()}>Generar caso relacionado</button></div></div>)))
+            : (isAdmin
+                ? <div style={{marginTop:12}}>
+                    <textarea className="ctrl" placeholder="Escribe una respuesta para el residente…" value={resp} onChange={e=>setResp(e.target.value)} style={{minHeight:80}} />
+                    <div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}><button className="btn primary sm" onClick={addStaff} disabled={!resp.trim()}>Registrar respuesta</button></div>
+                  </div>
+                : <div className="locknote" style={{marginTop:12}}><span>⏳</span><span>Tu caso está en gestión. Te avisaremos por aquí cuando la administración responda.</span></div>)}
+
+          {isAdmin && <>
+            <div className="block-title">Registro de modificaciones</div>
+            <ul className="log">
+              {(t.acciones||[]).slice().reverse().map((a,i)=>(
+                <li key={i}><span className="lg-dot"></span>
+                  <span>
+                    {a.autor && <span className="lg-autor">{a.autor}</span>}{a.autor?" · ":""}{a.detalle}
+                    <span className="lg-meta">{fmtDate(a.fecha)}{a.autorEmail?" · "+a.autorEmail:""}</span>
+                  </span>
+                </li>))}
+              {(!t.acciones||t.acciones.length===0) && <li className="hint">Sin modificaciones registradas.</li>}
+            </ul>
+            <div className="hint" style={{marginTop:8}}>Visible solo para administración. El residente no ve este registro.</div>
+          </>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ========================= PANEL (ADMIN) ========================= */
+function Panel({tickets,porFolio,onOpen,goPortal}){
+  const [fEstatus,setFEstatus]=useState("Todos"); const [eds,setEds]=useState([]); const [fArea,setFArea]=useState("Todas"); const [fPrio,setFPrio]=useState("Todas"); const [fUnidad,setFUnidad]=useState(""); const [fEdad,setFEdad]=useState("Todas");
+  const estatuses=["Todos","Abiertos","Recibido","En proceso","Cerrado"]; const prios=["Todas","Emergencia","Alta","Media","Baja"];
+  const filtered=useMemo(()=>tickets.filter(t=>{
+    if(fEstatus==="Abiertos" && t.estatus==="Cerrado") return false;
+    if(!["Abiertos","Todos"].includes(fEstatus) && t.estatus!==fEstatus) return false;
+    if(eds.length && !eds.includes(t.edificio)) return false;
+    if(fArea!=="Todas" && t.familia!==fArea) return false;
+    if(fPrio!=="Todas" && t.prioridad!==fPrio) return false;
+    if(fUnidad.trim() && !norm(t.unidad||"").includes(norm(fUnidad))) return false;
+    if(fEdad!=="Todas"){ const b=BUCKETS.find(x=>x.k===fEdad); if(b && !b.test(dias(msAcumulado(t,porFolio||{})))) return false; }
+    return true;
+  }),[tickets,fEstatus,eds,fArea,fPrio,fUnidad,fEdad,porFolio]);
+
+  // Antigüedad: solo tiene sentido sobre los casos abiertos.
+  const abiertosF=filtered.filter(t=>t.estatus!=="Cerrado");
+  const conEdad=abiertosF.map(t=>({t, acum:msAcumulado(t, porFolio||{}), propio:msCaso(t)}))
+                         .sort((a,b)=>b.acum-a.acum);
+  const promedioMs = conEdad.length ? conEdad.reduce((s,x)=>s+x.acum,0)/conEdad.length : 0;
+  const masAntiguo = conEdad.length ? conEdad[0] : null;
+  const bucketCounts = BUCKETS.map(b=>({...b, n:conEdad.filter(x=>b.test(dias(x.acum))).length}));
+  const maxBucket = Math.max(1, ...bucketCounts.map(x=>x.n));
+
+  const total=filtered.length; const by=(k,v)=>filtered.filter(t=>t[k]===v).length;
+  const emergAbiertas=filtered.filter(t=>t.prioridad==="Emergencia"&&t.estatus!=="Cerrado").length;
+  const famCounts=Object.keys(FAMILIAS).map(k=>({k,label:FAMILIAS[k].label,n:filtered.filter(t=>t.familia===k).length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n);
+  const edCounts=EDIFICIOS.map(e=>({e,n:filtered.filter(t=>t.edificio===e).length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n);
+  const maxFam=Math.max(1,...famCounts.map(x=>x.n)); const maxEd=Math.max(1,...edCounts.map(x=>x.n));
+  const recientes=[...filtered].sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt)).slice(0,6);
+  const prioColor={Emergencia:"var(--emerg)",Alta:"var(--alta)",Media:"var(--media)",Baja:"var(--baja)"};
+  const clear=()=>{ setFEstatus("Todos"); setEds([]); setFArea("Todas"); setFPrio("Todas"); setFUnidad(""); setFEdad("Todas"); };
+  const active = fEstatus!=="Todos"||eds.length||fArea!=="Todas"||fPrio!=="Todas"||fUnidad.trim()||fEdad!=="Todas";
+
+  return (
+    <div>
+      <div className="view-head"><div className="kicker">Administración</div><h2>Panel general</h2><p>Vista consolidada de todos los edificios. Filtra por edificio, estado, área o prioridad y los indicadores se recalculan.</p></div>
+      <div className="filters">
+        {estatuses.map(s=><button key={s} className={"chip"+(fEstatus===s?" active":"")} onClick={()=>setFEstatus(s)}>{s}</button>)}
+        <div style={{width:1,height:22,background:"var(--line)"}}></div>
+        <MultiSelect options={EDIFICIOS} selected={eds} onChange={setEds} label="Edificios" />
+        <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={fArea} onChange={e=>setFArea(e.target.value)}><option value="Todas">Todas las áreas</option>{Object.entries(FAMILIAS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
+        <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={fPrio} onChange={e=>setFPrio(e.target.value)}>{prios.map(p=><option key={p}>{p==="Todas"?"Todas las prioridades":p}</option>)}</select>
+        <input className="ctrl" style={{width:170,padding:"7px 10px"}} placeholder="Unidad / Depto…" value={fUnidad} onChange={e=>setFUnidad(e.target.value)} />
+        <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={fEdad} onChange={e=>setFEdad(e.target.value)}>
+          <option value="Todas">Toda antigüedad</option>
+          {BUCKETS.map(b=><option key={b.k} value={b.k}>{b.k}</option>)}
+        </select>
+        {active && <button className="btn ghost sm" onClick={clear}>Limpiar filtros</button>}
+      </div>
+      {fEdad!=="Todas" && <div className="hint" style={{marginTop:-6,marginBottom:12}}>Antigüedad = tiempo acumulado del caso y de los casos anteriores a los que hace referencia. En los cerrados, es cuánto tardó en resolverse.</div>}
+      {eds.length===0 && fUnidad.trim() && <div className="hint" style={{marginTop:-6,marginBottom:12}}>Buscando la unidad «{fUnidad}» en todos los edificios. Selecciona un edificio para acotar.</div>}
+      <div className="kpis">
+        <div className="kpi"><div className="n">{total}</div><div className="l">Casos</div></div>
+        <div className="kpi"><div className="n">{by("estatus","Recibido")}</div><div className="l">Recibidos</div></div>
+        <div className="kpi"><div className="n">{by("estatus","En proceso")}</div><div className="l">En proceso</div></div>
+        <div className="kpi"><div className="n">{by("estatus","Cerrado")}</div><div className="l">Cerrados</div></div>
+        <div className={"kpi"+(emergAbiertas?" alert":"")}><div className="n">{emergAbiertas}</div><div className="l">Emergencias abiertas</div></div>
+        <div className="kpi"><div className="n" style={{fontSize:24}}>{conEdad.length?fmtDur(promedioMs):"—"}</div><div className="l">Antigüedad promedio</div></div>
+        <div className={"kpi"+(masAntiguo && dias(masAntiguo.acum)>=8?" alert":"")}><div className="n" style={{fontSize:24}}>{masAntiguo?fmtDur(masAntiguo.acum):"—"}</div><div className="l">Caso más antiguo</div></div>
+      </div>
+      {total===0
+        ? <div className="card"><div className="empty-state"><div className="em-ic">✧</div>No hay casos con estos filtros.</div></div>
+        : <>
+          <div className="dash-grid">
+            <div className="card pad"><div className="block-title" style={{marginTop:0}}>Casos por edificio</div>{edCounts.map(x=><div className="bar-row" key={x.e}><div className="bl"><span className="bn">{x.e}</span><span className="bc">{x.n}</span></div><div className="bar"><span style={{width:(x.n/maxEd*100)+"%"}}></span></div></div>)}</div>
+            <div className="card pad"><div className="block-title" style={{marginTop:0}}>Casos por área</div>{famCounts.map(x=><div className="bar-row" key={x.k}><div className="bl"><span className="bn">{x.label}</span><span className="bc">{x.n}</span></div><div className="bar"><span style={{width:(x.n/maxFam*100)+"%"}}></span></div></div>)}</div>
+          </div>
+          <div className="dash-grid" style={{marginTop:18}}>
+            <div className="card pad"><div className="block-title" style={{marginTop:0}}>Por prioridad</div>{["Emergencia","Alta","Media","Baja"].map(p=><div className="bar-row" key={p}><div className="bl"><span className="bn">{p}</span><span className="bc">{by("prioridad",p)}</span></div><div className="bar"><span style={{width:(by("prioridad",p)/Math.max(1,total)*100)+"%",background:prioColor[p]}}></span></div></div>)}</div>
+            <div className="card pad"><div className="block-title" style={{marginTop:0}}>Por estatus</div>{["Recibido","En proceso","Cerrado"].map(s=><div className="bar-row" key={s}><div className="bl"><span className="bn">{s}</span><span className="bc">{by("estatus",s)}</span></div><div className="bar"><span style={{width:(by("estatus",s)/Math.max(1,total)*100)+"%",background:s==="Cerrado"?"var(--cerrado)":s==="En proceso"?"var(--proceso)":"var(--recibido)"}}></span></div></div>)}</div>
+          </div>
+          <div className="dash-grid" style={{marginTop:18}}>
+            <div className="card pad">
+              <div className="block-title" style={{marginTop:0}}>Casos abiertos por antigüedad</div>
+              {conEdad.length===0
+                ? <div className="hint">No hay casos abiertos con estos filtros.</div>
+                : bucketCounts.map(b=><div className="bar-row" key={b.k}>
+                    <div className="bl"><span className="bn">{b.k}</span><span className="bc">{b.n}</span></div>
+                    <div className="bar"><span style={{width:(b.n/maxBucket*100)+"%",background:b.color}}></span></div>
+                  </div>)}
+              <div className="hint" style={{marginTop:8}}>El tiempo acumula la cadena: si un caso hace referencia a uno anterior, suma ambos.</div>
+            </div>
+            <div className="card pad">
+              <div className="block-title" style={{marginTop:0}}>Abiertos más antiguos</div>
+              {conEdad.length===0
+                ? <div className="hint">Nada pendiente. Buen momento.</div>
+                : <div className="caselist" style={{border:0}}>
+                    {conEdad.slice(0,6).map(({t,acum,propio})=>(
+                      <button key={t.id} className={"caserow "+(t.prioridad==="Emergencia"?"b-emerg":t.prioridad==="Alta"?"b-alta":"")} onClick={()=>onOpen(t)}>
+                        <div><div className="folio mono">{t.folio}</div><div style={{marginTop:6}}><span className={"edad "+edadClass(dias(acum))}>{fmtDur(acum)}</span></div></div>
+                        <div><div className="tt" style={{fontSize:13.5}}>{t.categoria}{t.relacionadoCon&&<span className="sumtag">suma {t.relacionadoCon}</span>}</div>
+                          <div className="meta">{t.edificio} · Depto {t.unidad} · {t.responsable}</div></div>
+                        <div className="rt"><Pill kind={statClass(t.estatus)} text={t.estatus} /></div>
+                      </button>))}
+                  </div>}
+            </div>
+          </div>
+
+          <div className="card" style={{marginTop:18}}>
+            <div className="pad" style={{paddingBottom:0,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div className="block-title" style={{margin:0}}>Actividad reciente</div><button className="btn sm ghost" onClick={goPortal}>Ver bandeja completa →</button></div>
+            <div className="caselist" style={{border:0,margin:"10px 0 0"}}>{recientes.map(t=><button key={t.id} className={"caserow "+(t.prioridad==="Emergencia"?"b-emerg":t.prioridad==="Alta"?"b-alta":"")} onClick={()=>onOpen(t)}>
+              <div><div className="folio mono">{t.folio}</div><div style={{marginTop:6}}><Pill kind={prioClass(t.prioridad)} text={t.prioridad} /></div></div>
+              <div><div className="tt">{t.categoria}</div><div className="meta">{t.edificio} · Depto {t.unidad} · actualizado {relDays(t.updatedAt)}</div></div>
+              <div className="rt"><Pill kind={statClass(t.estatus)} text={t.estatus} /></div>
+            </button>)}</div>
+          </div>
+        </>}
+    </div>
+  );
+}
+
+/* ========================= PANEL POR EDIFICIO (2.0) ========================= */
+function PanelEdificios({tickets,porFolio,verCasos}){
+  const [q,setQ]=useState(""); const [soloConCasos,setSoloConCasos]=useState(true);
+
+  const datos=useMemo(()=>EDIFICIOS.map(e=>{
+    const casos=tickets.filter(t=>t.edificio===e);
+    const abiertos=casos.filter(t=>t.estatus!=="Cerrado");
+    const edades=abiertos.map(t=>msAcumulado(t,porFolio||{}));
+    const prom=edades.length? edades.reduce((a,b)=>a+b,0)/edades.length : 0;
+    const max=edades.length? Math.max(...edades) : 0;
+    return {
+      e, total:casos.length, abiertos:abiertos.length, cerrados:casos.length-abiertos.length,
+      emerg:abiertos.filter(t=>t.prioridad==="Emergencia").length,
+      alta:abiertos.filter(t=>t.prioridad==="Alta").length,
+      recibidos:abiertos.filter(t=>t.estatus==="Recibido").length,
+      proceso:abiertos.filter(t=>t.estatus==="En proceso").length,
+      prom, max,
+      tramos: BUCKETS.map(b=>edades.filter(ms=>b.test(dias(ms))).length)
+    };
+  }),[tickets,porFolio]);
+
+  const visibles=datos
+    .filter(d=>!soloConCasos || d.total>0)
+    .filter(d=>!q.trim() || norm(d.e).includes(norm(q)))
+    .sort((a,b)=> (b.emerg-a.emerg) || (b.max-a.max) || (b.abiertos-a.abiertos) || a.e.localeCompare(b.e));
+
+  const totAbiertos=datos.reduce((s,d)=>s+d.abiertos,0);
+  const totEmerg=datos.reduce((s,d)=>s+d.emerg,0);
+  const edConCasos=datos.filter(d=>d.abiertos>0).length;
+  const critico=datos.filter(d=>dias(d.max)>=8).length;
+
+  const nivel=(d)=> d.emerg>0 ? "at-cri" : (dias(d.max)>=8 ? "at-alta" : (d.abiertos===0 ? "at-ok" : ""));
+
+  return (
+    <div>
+      <div className="view-head"><div className="kicker">Administración</div><h2>Panel por edificio</h2><p>Un cuadro por edificio con sus indicadores clave. Ordenados por urgencia: primero los que tienen emergencias, luego los que arrastran casos más antiguos.</p></div>
+
+      <div className="resumen">
+        <div className="r"><span className="rv">{totAbiertos}</span><span className="rl">Casos abiertos</span></div>
+        <div className={"r"+(totEmerg?" alerta":"")}><span className="rv">{totEmerg}</span><span className="rl">Emergencias</span></div>
+        <div className="r"><span className="rv">{edConCasos}</span><span className="rl">Edificios con pendientes</span></div>
+        <div className={"r"+(critico?" alerta":"")}><span className="rv">{critico}</span><span className="rl">Con casos de +8 días</span></div>
+      </div>
+
+      <div className="filters">
+        <input className="ctrl search" placeholder="Buscar edificio…" value={q} onChange={e=>setQ(e.target.value)} />
+        <button className={"chip"+(soloConCasos?" active":"")} onClick={()=>setSoloConCasos(s=>!s)}>{soloConCasos?"Solo con casos":"Mostrando todos"}</button>
+      </div>
+
+      <div className="leyenda">
+        <span style={{fontWeight:600,color:"var(--ink)"}}>Antigüedad de los abiertos:</span>
+        {BUCKETS.map(b=><span className="lg" key={b.k}><span className="sw" style={{background:b.color}}></span>{b.k}</span>)}
+      </div>
+
+      {visibles.length===0
+        ? <div className="card"><div className="empty-state"><div className="em-ic">✧</div>No hay edificios que coincidan.</div></div>
+        : <div className="egrid">
+            {visibles.map(d=>{
+              const totalTramos=d.tramos.reduce((a,b)=>a+b,0);
+              return (
+                <button key={d.e} className={"ecard "+nivel(d)} onClick={()=>verCasos(d.e)} title={`Ver casos de ${d.e}`}>
+                  <div className="ecard-head">
+                    <h4>{d.e}</h4>
+                    <div><div className="abn" style={d.emerg?{color:"var(--emerg)"}:null}>{d.abiertos}</div><div className="abl">Abiertos</div></div>
+                  </div>
+
+                  <div className="ecard-kpis">
+                    <div className={"mini"+(d.emerg?" alerta":"")}><div className="mv">{d.emerg}</div><div className="ml">Emergencias</div></div>
+                    <div className={"mini"+(d.alta?" warn":"")}><div className="mv">{d.alta}</div><div className="ml">Prioridad alta</div></div>
+                    <div className="mini"><div className="mv">{d.recibidos}</div><div className="ml">Sin atender</div></div>
+                    <div className="mini"><div className="mv">{d.proceso}</div><div className="ml">En proceso</div></div>
+                    <div className="mini"><div className="mv">{d.abiertos?fmtDur(d.prom):"—"}</div><div className="ml">Antigüedad prom.</div></div>
+                    <div className={"mini"+(dias(d.max)>=8?" alerta":dias(d.max)>=4?" warn":"")}><div className="mv">{d.abiertos?fmtDur(d.max):"—"}</div><div className="ml">Más antiguo</div></div>
+                  </div>
+
+                  {totalTramos>0
+                    ? <>
+                        <div className="semaforo">
+                          {d.tramos.map((n,i)=> n>0 ? <span key={i} style={{width:(n/totalTramos*100)+"%",background:BUCKETS[i].color}} title={`${n} · ${BUCKETS[i].k}`}></span> : null)}
+                        </div>
+                        <div className="sfoot"><span>{d.cerrados} cerrados</span><span>Ver casos →</span></div>
+                      </>
+                    : <div className="vacio">Sin casos abiertos{d.cerrados?` · ${d.cerrados} cerrados`:""}.</div>}
+                </button>
+              );
+            })}
+          </div>}
+    </div>
+  );
+}
+
+/* ========================= REGLAS (ADMIN) ========================= */
+function Configuracion({user,puedeEditar,onCambio,ver,toast}){
+  const [tab,setTab]=useState("tipificacion");
+  return (
+    <div>
+      <div className="view-head"><div className="kicker">Configuración</div><h2>Reglas y edificios</h2>
+        <p>Estos datos viven en la base de datos, no en el archivo: los cambios se aplican de inmediato para todos, sin volver a publicar la app.</p></div>
+
+      <div className="filters">
+        <button className={"chip"+(tab==="tipificacion"?" active":"")} onClick={()=>setTab("tipificacion")}>Tipificación</button>
+        <button className={"chip"+(tab==="edificios"?" active":"")} onClick={()=>setTab("edificios")}>Edificios</button>
+      </div>
+
+      {!puedeEditar && <div className="note" style={{marginTop:0,marginBottom:18}}>
+        <b>Solo lectura.</b> La edición está reservada a los administradores del sistema
+        (<span className="mono">{ADMIN_SISTEMA.join(" · ")}</span>). Puedes consultar las reglas, pero no modificarlas.</div>}
+
+      {tab==="tipificacion" ? <Tipificacion user={user} puedeEditar={puedeEditar} onCambio={onCambio} toast={toast} />
+                            : <Edificios user={user} puedeEditar={puedeEditar} onCambio={onCambio} toast={toast} />}
+    </div>
+  );
+}
+
+/* ---- Tipificación editable ---- */
+function Tipificacion({user,puedeEditar,onCambio,toast}){
+  const [cats,setCats]=useState(()=>CATS.map(c=>({...c})));
+  const [sucio,setSucio]=useState(false); const [guardando,setGuardando]=useState(false);
+  const al={ticket:"Reclamo",consulta:"Consulta"};
+
+  const editar=(id,campo,valor)=>{ setCats(cs=>cs.map(c=>c.id===id?{...c,[campo]:valor}:c)); setSucio(true); };
+  const eliminar=(id)=>{ setCats(cs=>cs.filter(c=>c.id!==id)); setSucio(true); };
+  const agregar=(fam)=>{
+    const id="m"+Math.random().toString(36).slice(2,9);
+    setCats(cs=>[...cs,{id,fam,label:"",prioridad:"Media",resp:"Administración",accion:"ticket"}]);
+    setSucio(true);
+  };
+  const guardar=async()=>{
+    if(cats.some(c=>!c.label.trim())){ toast("Hay motivos sin nombre. Complétalos o elimínalos.","warn"); return; }
+    setGuardando(true);
+    try{
+      await guardarTipificacion(cats.map(c=>({...c,label:c.label.trim()})), user.email);
+      aplicarCats(cats.map(c=>({...c})));
+      setSucio(false); onCambio(); toast("Reglas de tipificación actualizadas.");
+    }catch(e){ toast("No se pudieron guardar las reglas. ¿Tienes permisos de administrador del sistema?","error"); }
+    setGuardando(false);
+  };
+  const restablecer=()=>{ setCats(CATS_DEFECTO.map(c=>({...c}))); setSucio(true); toast("Valores por defecto cargados. Recuerda guardar.","info"); };
+
+  return (
+    <div>
+      {puedeEditar && <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:16,flexWrap:"wrap"}}>
+        <button className="btn primary" onClick={guardar} disabled={!sucio||guardando}>{guardando?"Guardando…":"Guardar cambios"}</button>
+        {sucio && <span className="hint" style={{color:"var(--alta)"}}>Tienes cambios sin guardar.</span>}
+        <button className="btn ghost sm" onClick={restablecer} style={{marginLeft:"auto"}}>Cargar valores por defecto</button>
+      </div>}
+
+      {Object.entries(FAMILIAS).map(([k,v])=>{
+        const cs=cats.filter(c=>c.fam===k);
+        return (
+          <details className="rule-fam" key={k}>
+            <summary><span>{v.ico} {v.label}</span><span className="hint">{cs.length} motivos</span></summary>
+            <div className="rule-tbl">
+              <div className="rr hd"><span>Motivo</span><span>Prioridad</span><span>Responsable</span><span>{puedeEditar?"Acción":"Tipo"}</span></div>
+              {cs.map(c=> puedeEditar
+                ? <div className="rr" key={c.id} style={{gridTemplateColumns:"1fr 118px 140px 116px 34px"}}>
+                    <input className="ctrl" style={{padding:"6px 9px",fontSize:13}} value={c.label} placeholder="Nombre del motivo" onChange={e=>editar(c.id,"label",e.target.value)} />
+                    <select className="ctrl" style={{padding:"6px 8px",fontSize:12.5}} value={c.prioridad} onChange={e=>editar(c.id,"prioridad",e.target.value)}>
+                      {["Emergencia","Alta","Media","Baja"].map(p=><option key={p}>{p}</option>)}
+                    </select>
+                    <select className="ctrl" style={{padding:"6px 8px",fontSize:12.5}} value={c.resp} onChange={e=>editar(c.id,"resp",e.target.value)}>
+                      {RESPONSABLES.map(r=><option key={r}>{r}</option>)}
+                    </select>
+                    <select className="ctrl" style={{padding:"6px 8px",fontSize:12.5}} value={c.accion} onChange={e=>editar(c.id,"accion",e.target.value)}>
+                      <option value="ticket">Reclamo</option><option value="consulta">Consulta</option>
+                    </select>
+                    <button className="adj-rm" onClick={()=>eliminar(c.id)} aria-label="Eliminar motivo">✕</button>
+                  </div>
+                : <div className="rr" key={c.id}>
+                    <span>{c.label}</span>
+                    <span><Pill kind={prioClass(c.prioridad)} text={c.prioridad} /></span>
+                    <span>{c.resp}</span>
+                    <span className="hint" style={{fontWeight:600,color:"var(--ink)"}}>{al[c.accion]||"Gestión"}</span>
+                  </div>)}
+              {puedeEditar && <div className="rr" style={{gridTemplateColumns:"1fr"}}>
+                <button className="btn sm ghost" onClick={()=>agregar(k)}>+ Agregar motivo a «{v.label}»</button>
+              </div>}
+            </div>
+          </details>
+        );
+      })}
+
+      <div className="note">
+        <b>Qué significa cada campo.</b> <b>Prioridad</b> ordena la bandeja y define qué es una emergencia.
+        <b> Responsable</b> es el área a la que se dirige el caso. <b>Acción</b> distingue un reclamo (se gestiona y se cierra)
+        de una consulta (registro informativo).<br/>
+        Los cambios afectan a los <b>casos nuevos</b>. Los ya ingresados conservan la clasificación que tenían.
+      </div>
+    </div>
+  );
+}
+
+/* ---- Edificios editables ---- */
+function Edificios({user,puedeEditar,onCambio,toast}){
+  const [lista,setLista]=useState([]); const [cargando,setCargando]=useState(true);
+  const [nuevo,setNuevo]=useState(""); const [masivo,setMasivo]=useState(""); const [verMasivo,setVerMasivo]=useState(false);
+  const [trabajando,setTrabajando]=useState(false);
+
+  const refrescar=async()=>{
+    setCargando(true);
+    try{ const l=await cargarEdificios(); setLista(l); if(l.length) aplicarEdificios(l.map(x=>x.nombre)); onCambio(); }
+    catch(e){ toast("No se pudo leer la lista de edificios.","error"); }
+    setCargando(false);
+  };
+  useEffect(()=>{ refrescar(); },[]);
+
+  const agregar=async()=>{
+    const n=nuevo.trim(); if(!n) return;
+    if(lista.some(x=>norm(x.nombre)===norm(n))){ toast("Ese edificio ya existe.","warn"); return; }
+    setTrabajando(true);
+    try{ await agregarEdificio(n); setNuevo(""); await refrescar(); toast(`«${n}» agregado.`); }
+    catch(e){ toast("No se pudo agregar. ¿Tienes permisos de administrador del sistema?","error"); }
+    setTrabajando(false);
+  };
+  const quitar=async(e)=>{
+    setTrabajando(true);
+    try{ await borrarEdificio(e.id); await refrescar(); toast(`«${e.nombre}» eliminado.`,"info"); }
+    catch(err){ toast("No se pudo eliminar.","error"); }
+    setTrabajando(false);
+  };
+  const importar=async()=>{
+    const nombres=[...new Set(masivo.split("\n").map(x=>x.trim()).filter(Boolean))];
+    if(!nombres.length){ toast("Pega al menos un edificio, uno por línea.","warn"); return; }
+    setTrabajando(true);
+    try{
+      for(const n of nombres) await agregarEdificio(n);
+      setMasivo(""); setVerMasivo(false); await refrescar();
+      toast(`${nombres.length} edificio${nombres.length!==1?"s":""} importado${nombres.length!==1?"s":""}.`);
+    }catch(e){ toast("Falló la importación. ¿Tienes permisos de administrador del sistema?","error"); }
+    setTrabajando(false);
+  };
+  const sembrar=async()=>{
+    setTrabajando(true);
+    try{ for(const n of EDIFICIOS_DEFECTO) await agregarEdificio(n); await refrescar(); toast("Lista inicial cargada."); }
+    catch(e){ toast("No se pudo cargar la lista inicial.","error"); }
+    setTrabajando(false);
+  };
+
+  return (
+    <div>
+      <div className="card pad" style={{marginBottom:18}}>
+        <div className="block-title" style={{marginTop:0}}>Cómo se usan</div>
+        <p className="hint" style={{marginTop:0}}>
+          Cuando un residente escribe su edificio, el sistema lo valida contra esta lista y fija el que más coincide.
+          Si un edificio no está aquí, el residente no podrá ingresar su caso.
+        </p>
+        {cargando ? <div className="hint">Cargando…</div>
+          : <div className="hint">{lista.length>0
+              ? <><b style={{color:"var(--ink)"}}>{lista.length}</b> edificio{lista.length!==1?"s":""} en la base de datos.</>
+              : <>La base está <b>vacía</b>: por ahora se usan los {EDIFICIOS_DEFECTO.length} edificios de ejemplo incluidos en el archivo.</>}</div>}
+      </div>
+
+      {puedeEditar && <div className="card pad" style={{marginBottom:18}}>
+        <div className="block-title" style={{marginTop:0}}>Agregar edificios</div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"flex-end"}}>
+          <div style={{flex:1,minWidth:220}}>
+            <Field label="Nombre del edificio"><input className="ctrl" value={nuevo} placeholder="Ej: Los Aromos" onChange={e=>setNuevo(e.target.value)} onKeyDown={e=>e.key==="Enter"&&agregar()} /></Field>
+          </div>
+          <button className="btn primary" onClick={agregar} disabled={trabajando||!nuevo.trim()} style={{marginBottom:16}}>Agregar</button>
+          <button className="btn" onClick={()=>setVerMasivo(v=>!v)} style={{marginBottom:16}}>{verMasivo?"Cerrar importación":"Importar varios"}</button>
+        </div>
+
+        {verMasivo && <div style={{marginTop:6}}>
+          <Field label="Pega la lista" hint="Un edificio por línea. Copia la columna del reporte de comunidades y pégala aquí.">
+            <textarea className="ctrl" style={{minHeight:130}} value={masivo} onChange={e=>setMasivo(e.target.value)} placeholder={"Capri\nIbsen\nPortofino"} />
+          </Field>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+            <button className="btn ghost sm" onClick={()=>{setMasivo("");setVerMasivo(false);}}>Cancelar</button>
+            <button className="btn primary sm" onClick={importar} disabled={trabajando||!masivo.trim()}>{trabajando?"Importando…":"Importar"}</button>
+          </div>
+          <div className="hint" style={{marginTop:8}}>Los repetidos se ignoran. Si un nombre ya existe, se sobrescribe con el mismo valor.</div>
+        </div>}
+
+        {lista.length===0 && !cargando && <div style={{marginTop:12}}>
+          <button className="btn" onClick={sembrar} disabled={trabajando}>Cargar los {EDIFICIOS_DEFECTO.length} edificios de ejemplo</button>
+          <div className="hint" style={{marginTop:6}}>Úsalo solo para probar. Lo correcto es importar la lista real del reporte de comunidades.</div>
+        </div>}
+      </div>}
+
+      <div className="card">
+        <div className="pad" style={{paddingBottom:8}}><div className="block-title" style={{margin:0}}>Edificios registrados</div></div>
+        {cargando
+          ? <div className="empty-state"><div className="hint">Cargando…</div></div>
+          : lista.length===0
+            ? <div className="empty-state"><div className="em-ic">✧</div>Aún no hay edificios en la base de datos.</div>
+            : <div className="adj-list" style={{padding:"0 16px 16px"}}>
+                {lista.map(e=>(
+                  <div className="adj-item" key={e.id}>
+                    <span className="adj-ic">🏢</span>
+                    <span className="adj-nm">{e.nombre}</span>
+                    <span className="adj-sz mono">{e.id}</span>
+                    {puedeEditar && <button className="adj-rm" onClick={()=>quitar(e)} disabled={trabajando} aria-label={"Eliminar "+e.nombre}>✕</button>}
+                  </div>))}
+              </div>}
+      </div>
+
+      <div className="note">
+        <b>De dónde sale la lista real.</b> El origen es el archivo <b>reporte_comunidades_(fecha)</b>, hoja «Egresos - titular».
+        Hoy la carga es manual: copias esa columna y la pegas en «Importar varios». Automatizar esa sincronización requiere un
+        proceso del lado del servidor; es un paso posterior.<br/>
+        <b>Ojo:</b> eliminar un edificio no borra sus casos, pero los residentes de esa torre ya no podrán ingresar casos nuevos.
+      </div>
+    </div>
+  );
+}
+
+/* ========================= AJUSTES (ADMIN) ========================= */
+function QRBlock(){
+  const [url,setUrl]=useState(""); const [gen,setGen]=useState(""); const [warn,setWarn]=useState(false); const ref=useRef(null);
+  const generate=()=>{ let u=url.trim(); if(!u){ setWarn(true); return;} setWarn(false); if(!u.includes("#")) u=u.replace(/\/+$/,"")+"#residente"; setGen(u); };
+  useEffect(()=>{ if(!gen||!ref.current) return; if(typeof QRCode==="undefined"){ ref.current.innerHTML="<span class='hint'>No se pudo cargar el generador de QR.</span>"; return; } ref.current.innerHTML=""; new QRCode(ref.current,{text:gen,width:200,height:200,correctLevel:QRCode.CorrectLevel.M}); },[gen]);
+  const download=()=>{ const c=ref.current&&ref.current.querySelector("canvas"); if(!c)return; const a=document.createElement("a"); a.href=c.toDataURL("image/png"); a.download="acceso-residentes-qr.png"; a.click(); };
+  return (
+    <div>
+      <p className="hint" style={{marginTop:0}}>Pega la URL pública de la Mesa de Casos. Generaremos un QR que abre directamente el acceso de residentes, para enviar por correo o publicar en cada edificio.</p>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"flex-end"}}>
+        <div style={{flex:1,minWidth:240}}><Field label="URL pública del portal"><input className="ctrl" placeholder="https://www.cumbregi.com/casos" value={url} onChange={e=>setUrl(e.target.value)} /></Field></div>
+        <button className="btn primary" onClick={generate} style={{marginBottom:16}}>Generar QR</button>
+      </div>
+      {warn && <span className="hint" style={{color:"var(--emerg)"}}>Ingresa la URL pública primero.</span>}
+      {gen && <div style={{marginTop:12}}>
+        <div className="qr-box"><div className="qr-render" ref={ref}></div><span className="mono hint" style={{maxWidth:220,wordBreak:"break-all",textAlign:"center"}}>{gen}</span></div>
+        <div style={{marginTop:12}}><button className="btn sm" onClick={download}>Descargar PNG</button></div>
+      </div>}
+    </div>
+  );
+}
+function RespaldoBlock({tickets,toast}){
+  const [bajando,setBajando]=useState(false);
+
+  const bajarCSV=()=>{
+    if(!tickets.length){ toast("No hay casos que respaldar.","warn"); return; }
+    descargarArchivo(`mesa-de-casos-casos-${hoyISO()}.csv`, casosACSV(tickets), "text/csv;charset=utf-8");
+    toast(`${tickets.length} casos descargados en CSV.`);
+  };
+
+  const bajarJSON=async()=>{
+    setBajando(true);
+    try{
+      let edificios=[], tipificacion=null;
+      try{ edificios=await cargarEdificios(); }catch(e){}
+      try{ tipificacion=await cargarTipificacion(); }catch(e){}
+      const dump={
+        generadoEn:new Date().toISOString(),
+        proyecto:firebaseConfig.projectId,
+        totalCasos:tickets.length,
+        casos:tickets,
+        edificios:edificios.length?edificios:EDIFICIOS.map(n=>({id:slug(n),nombre:n})),
+        tipificacion: tipificacion || CATS,
+        familias: FAMILIAS
+      };
+      descargarArchivo(`mesa-de-casos-respaldo-${hoyISO()}.json`, JSON.stringify(dump,null,2), "application/json");
+      toast("Respaldo completo descargado.");
+    }catch(e){ toast("No se pudo generar el respaldo.","error"); }
+    setBajando(false);
+  };
+
+  return (
+    <div>
+      <p className="hint" style={{marginTop:0}}>
+        Descarga una copia de los datos en tu propio dispositivo. Es tu respaldo independiente de Google:
+        sirve para archivar, auditar o migrar a otro sistema.
+      </p>
+      <div style={{display:"flex",gap:10,flexWrap:"wrap",marginTop:12}}>
+        <button className="btn primary" onClick={bajarJSON} disabled={bajando}>{bajando?"Generando…":"Descargar respaldo completo (JSON)"}</button>
+        <button className="btn" onClick={bajarCSV}>Descargar casos para Excel (CSV)</button>
+      </div>
+      <div className="hint" style={{marginTop:10}}>
+        {tickets.length} caso{tickets.length!==1?"s":""} en la base. El JSON incluye además los edificios y las reglas de tipificación.
+      </div>
+      <div className="note" style={{marginTop:14}}>
+        <b>Lo que esta descarga NO incluye:</b> los archivos adjuntos (solo se guardan sus enlaces),
+        la lista de encargados y las reglas de seguridad. Y es una <b>copia manual</b>: no se actualiza sola.
+        Para protección real y automática hay que activar los <b>respaldos programados de Firestore</b> en Google Cloud.
+      </div>
+    </div>
+  );
+}
+
+function Ajustes({user,tickets,toast}){
+  return (
+    <div>
+      <div className="view-head"><div className="kicker">Administración</div><h2>Ajustes</h2><p>Sesión, respaldo de datos y difusión del acceso para residentes.</p></div>
+      <div className="card pad" style={{marginBottom:18}}>
+        <div className="block-title" style={{marginTop:0}}>Sesión</div>
+        <div className="hint">Conectado como <b style={{color:"var(--ink)"}}>{user.displayName||"—"}</b> · <span className="mono">{user.email}</span> · acceso Microsoft</div>
+      </div>
+      <div className="card pad" style={{marginBottom:18}}>
+        <div className="block-title" style={{marginTop:0}}>Respaldo de datos</div>
+        <RespaldoBlock tickets={tickets} toast={toast} />
+      </div>
+      <div className="card pad">
+        <div className="block-title" style={{marginTop:0}}>Acceso de residentes (código QR)</div>
+        <QRBlock />
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

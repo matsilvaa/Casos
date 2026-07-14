@@ -337,6 +337,22 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 const storage = firebase.storage();
+// Sin esto, el SDK reintenta en silencio hasta 2 minutos antes de avisar.
+try{ storage.setMaxUploadRetryTime(20000); storage.setMaxOperationRetryTime(20000); }catch(e){}
+
+/* Los correos de acceso se envían en español. */
+auth.languageCode = "es";
+
+/* ---- Identidad del remitente ----
+   Pon DOMINIO_PROPIO en true SOLO cuando la verificación del dominio en
+   Firebase → Authentication → Templates aparezca como completada. */
+const DOMINIO_PROPIO = true;
+const REMITENTE = DOMINIO_PROPIO
+  ? "no-responder@cumbregi.com"
+  : "noreply@mesadecasos-650eb.firebaseapp.com";
+const REMITENTE_NOMBRE = DOMINIO_PROPIO
+  ? "Casos · Cumbre Asesorías Limitada"
+  : "Mesa de Casos";
 // Por defecto el SDK reintenta hasta 10 minutos y la subida parece "colgada".
 // Con esto, si algo está mal configurado, el error aparece en segundos.
 try{ storage.setMaxUploadRetryTime(45000); storage.setMaxOperationRetryTime(20000); }catch(e){}
@@ -346,10 +362,6 @@ try{ storage.setMaxUploadRetryTime(45000); storage.setMaxOperationRetryTime(2000
 const ADJ_MAX_ARCHIVOS = 5;
 const ADJ_MAX_MB = 10;
 const ADJ_TIPOS = ["image/", "application/pdf"];
-
-/* Remitente actual de los correos de acceso. Cámbialo si configuras dominio propio
-   (Authentication → Templates → personalizar dominio), p. ej. no-responder@cumbregi.com */
-const REMITENTE = "noreply@mesadecasos-650eb.firebaseapp.com";
 
 /* =========================================================================
    2 · DOMINIO  ·  taxonomía de casos (editable)
@@ -991,11 +1003,11 @@ function ResidentLogin({onEnviar,enviado,onBack,error}){
         <div className="sub">Enviamos un enlace de acceso a <b>{enviado}</b>. Ábrelo desde este mismo dispositivo para entrar.</div>
 
         <div className="warn-box">
-          <div className="wt"><span className="wic">⚠️</span><span>Revisa tu carpeta de spam o correo no deseado</span></div>
-          <p><b>El correo casi siempre llega ahí.</b> Si no lo ves en tu bandeja de entrada en un minuto, búscalo en <b>Spam</b>, <b>Correo no deseado</b> o <b>Promociones</b>.</p>
-          <p>Llega desde esta dirección:</p>
+          <div className="wt"><span className="wic">✉️</span><span>Revisa tu bandeja de entrada</span></div>
+          <p>El enlace puede tardar un minuto en llegar. Si no lo ves en tu bandeja, revisa también <b>Spam</b> o <b>Correo no deseado</b>.</p>
+          <p>Llega de parte de <b>{REMITENTE_NOMBRE}</b>, desde:</p>
           <p><span className="sender">{REMITENTE}</span></p>
-          <p>Cuando lo encuentres, marca <b>«No es spam»</b> y agrega el remitente a tus contactos. Así los próximos correos llegarán directo a tu bandeja.</p>
+          <p>Si por casualidad cayó en spam, marca <b>«No es spam»</b> y agrega el remitente a tus contactos, para que los próximos lleguen directo a tu bandeja.</p>
         </div>
 
         <div className="hint" style={{marginBottom:12}}>El enlace vence en poco tiempo por seguridad. Si expira, pide uno nuevo.</div>
@@ -1011,7 +1023,7 @@ function ResidentLogin({onEnviar,enviado,onBack,error}){
       <AvisoHttps />
       <Field label="Tu correo" req err={err}><input className="ctrl" type="email" placeholder="tu@correo.cl" value={email} onChange={e=>{setEmail(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&enviar()} /></Field>
       <button className="btn primary block" onClick={enviar}>Enviarme el enlace</button>
-      <div className="warn-inline"><b>Ojo:</b> el correo suele llegar a la carpeta de <b>spam o correo no deseado</b>. Revísala si no lo ves en tu bandeja.</div>
+      <div className="warn-inline"><b>Ojo:</b> si no ves el correo en tu bandeja de entrada en un par de minutos, revisa la carpeta de <b>spam o correo no deseado</b>.</div>
       {error && <div className="err-box">{error}</div>}
       <button className="btn ghost block" onClick={onBack} style={{marginTop:10}}>← Volver</button>
     </div></div>
@@ -1043,7 +1055,7 @@ function Ingreso({submitCase,email,goMisCasos}){
   const empty={edificio:"",unidad:"",nombre:"",telefono:"",fam:"",catId:"",descripcion:"",ubicacion:"",emergencia:false};
   const [f,setF]=useState(empty); const [errors,setErrors]=useState({}); const [done,setDone]=useState(null); const [saving,setSaving]=useState(false);
   const [archivos,setArchivos]=useState([]); const [errFiles,setErrFiles]=useState(""); const [progreso,setProgreso]=useState(null);
-  const [pct,setPct]=useState(0); const [estancado,setEstancado]=useState(false);
+  const [pct,setPct]=useState(0); const [estancado,setEstancado]=useState(false); const [falloSubida,setFalloSubida]=useState("");
 
   // Si a los 12 segundos no se ha transferido ni un byte, el problema no es la conexión.
   useEffect(()=>{
@@ -1065,18 +1077,20 @@ function Ingreso({submitCase,email,goMisCasos}){
   };
   const quitar=(i)=>{ setArchivos(a=>a.filter((_,k)=>k!==i)); setErrFiles(""); };
 
-  const submit=async()=>{
+  const submit=async(sinAdjuntos)=>{
     const er={};
     ["unidad","nombre","fam","catId","descripcion"].forEach(k=>{ if(!f[k]) er[k]="Requerido"; });
     if(!f.edificio) er.edificio="Selecciona un edificio válido";
     setErrors(er); if(Object.keys(er).length) return;
-    setSaving(true); setPct(0); setEstancado(false);
-    const r=await submitCase({...f, archivos}, (n,total,porcentaje)=>{
+    const adj = sinAdjuntos===true ? [] : archivos;
+    setSaving(true); setPct(0); setEstancado(false); setFalloSubida("");
+    const r=await submitCase({...f, archivos:adj}, (n,total,porcentaje)=>{
       setPct(porcentaje);
       setProgreso(total>1 ? `Subiendo adjunto ${n} de ${total} · ${porcentaje}%` : `Subiendo · ${porcentaje}%`);
     });
     setSaving(false); setProgreso(null); setPct(0); setEstancado(false);
     if(r){ setDone(r); window.scrollTo({top:0,behavior:"smooth"}); }
+    else if(adj.length){ setFalloSubida("No se pudieron subir los adjuntos. Puedes enviar el caso sin ellos y adjuntarlos después, cuando el almacenamiento esté habilitado."); }
   };
 
   if(done){
@@ -1151,9 +1165,14 @@ function Ingreso({submitCase,email,goMisCasos}){
             </div>
           </div>}
 
+          {falloSubida && !saving && <div className="err-box" style={{marginTop:14}}>
+            <div style={{marginBottom:10}}>{falloSubida}</div>
+            <button className="btn sm" onClick={()=>submit(true)}>Enviar el caso sin adjuntos</button>
+          </div>}
+
           <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",gap:12,marginTop:20}}>
             {progreso && !archivos.length && <span className="hint">{progreso}</span>}
-            <button className="btn primary" onClick={submit} disabled={saving}>{saving?(archivos.length?"Subiendo…":"Enviando…"):"Enviar caso"}</button>
+            <button className="btn primary" onClick={()=>submit(false)} disabled={saving}>{saving?(archivos.length?"Subiendo…":"Enviando…"):"Enviar caso"}</button>
           </div>
         </div>
         <div className={"triage"+(cat?"":" empty")}>

@@ -814,7 +814,6 @@ function App(){
   // ---- Operaciones sobre casos ----
   const submitCase=async(data, onProgreso)=>{
     const cat=CATMAP[data.catId]; let prioridad=cat.prioridad;
-    if(data.emergencia && prioridad!=="Emergencia") prioridad="Emergencia";
     const now=new Date().toISOString();
 
     let adjuntos=[];
@@ -831,6 +830,34 @@ function App(){
     try{ const r=await crearCaso(base); toast(`Caso ${r.folio} registrado correctamente.`); return r; }
     catch(e){ toast("No se pudo registrar el caso. Intenta nuevamente.","error"); return null; }
   };
+  /* Deposita un aviso al residente en la colección 'mail'.
+     La extensión "Trigger Email from Firestore" lo envía por Resend.
+     Es best-effort: si falla, no interrumpe la operación. */
+  async function enqueueAviso(cur, full){
+    try{
+      if(!cur) return;
+      const email=(cur.email||"").trim(); if(!email) return;
+      const folio=cur.folio||"tu caso";
+      const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+      const hiloNuevo = Array.isArray(full.hilo) && full.hilo.length > ((cur.hilo||[]).length);
+      let asunto, encabezado, detalle="";
+      if(hiloNuevo){
+        const msg = full.hilo[full.hilo.length-1];
+        asunto = `Respuesta a tu caso ${folio}`;
+        encabezado = `La administración respondió tu caso <b>${esc(folio)}</b>.`;
+        const texto = msg && (msg.mensaje||msg.texto||"");
+        if(texto) detalle = `<p style="margin:16px 0;padding:12px 16px;background:#F1F5F5;border-left:3px solid #12565D;border-radius:6px;color:#334155;">${esc(texto)}</p>`;
+      } else if(full.estatus && full.estatus!==cur.estatus){
+        asunto = `Novedades en tu caso ${folio}`;
+        encabezado = `El estado de tu caso <b>${esc(folio)}</b> cambió a <b>${esc(full.estatus)}</b>.`;
+      } else { return; }
+      const portal = "https://casos.cumbregi.com/#residente";
+      const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:520px;margin:0 auto;color:#1f2937;font-size:15px;line-height:1.5;"><p>Hola${cur.nombre?" "+esc(cur.nombre):""}:</p><p>${encabezado}</p>${detalle}<p>Entra al portal para ver los detalles y responder:</p><p style="margin:22px 0;"><a href="${portal}" style="background:#12565D;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;display:inline-block;font-weight:600;">Ir al portal</a></p><p style="color:#64748b;font-size:13px;">Ingresa con este mismo correo (${esc(email)}); te enviaremos un enlace de acceso.</p><p style="color:#64748b;font-size:13px;">Equipo de Cumbre Asesorías Limitada</p></div>`;
+      const texto = `${encabezado.replace(/<[^>]+>/g,"")}\n\nEntra al portal: ${portal}\nIngresa con tu correo ${email}.`;
+      await db.collection("mail").add({ to:[email], replyTo:"comunidades@cumbregi.com", message:{ subject:asunto, html, text:texto } });
+    }catch(e){ /* aviso best-effort */ }
+  }
+
   const updateTicket=async(id,patch,logMsg,kind="info",detalleLog)=>{
     const cur=tickets.find(t=>t.id===id);
     if(cur && cur.estatus==="Cerrado"){ toast("Un caso cerrado no puede modificarse. Genera un caso relacionado.","warn"); return; }
@@ -842,7 +869,7 @@ function App(){
       }];
     }
     if(patch.estatus==="Cerrado") full.cerradoEn=new Date().toISOString();
-    try{ await actualizarCaso(id,full); if(sel&&sel.ticket.id===id) setSel(s=>({...s,ticket:{...s.ticket,...full}})); if(logMsg) toast(logMsg,kind); }
+    try{ await actualizarCaso(id,full); if(sel&&sel.ticket.id===id) setSel(s=>({...s,ticket:{...s.ticket,...full}})); if(logMsg) toast(logMsg,kind); enqueueAviso(cur,full); }
     catch(e){ toast("No se pudo guardar el cambio.","error"); }
   };
   const crearRelacionado=async(orig,texto)=>{
@@ -1052,7 +1079,7 @@ function NoAutorizado({user,claims,denyInfo,onSalir}){
 
 /* ========================= INGRESO (RESIDENTE) ========================= */
 function Ingreso({submitCase,email,goMisCasos}){
-  const empty={edificio:"",unidad:"",nombre:"",telefono:"",fam:"",catId:"",descripcion:"",ubicacion:"",emergencia:false};
+  const empty={edificio:"",unidad:"",nombre:"",telefono:"",fam:"",catId:"",descripcion:"",ubicacion:""};
   const [f,setF]=useState(empty); const [errors,setErrors]=useState({}); const [done,setDone]=useState(null); const [saving,setSaving]=useState(false);
   const [archivos,setArchivos]=useState([]); const [errFiles,setErrFiles]=useState(""); const [progreso,setProgreso]=useState(null);
   const [pct,setPct]=useState(0); const [estancado,setEstancado]=useState(false); const [falloSubida,setFalloSubida]=useState("");
@@ -1065,7 +1092,7 @@ function Ingreso({submitCase,email,goMisCasos}){
   },[saving,pct,archivos.length]);
   const set=(k,v)=>setF(s=>({...s,[k]:v}));
   const cat=f.catId?CATMAP[f.catId]:null; const catsOfFam=f.fam?CATS.filter(c=>c.fam===f.fam):[];
-  const prioridad=cat?(f.emergencia&&cat.prioridad!=="Emergencia"?"Emergencia":cat.prioridad):null;
+  const prioridad=cat?cat.prioridad:null;
   const accionTxt={ticket:"Reclamo registrado y notificado al responsable",consulta:"Registro informativo para gestión"};
 
   const onFiles=(e)=>{
@@ -1133,7 +1160,6 @@ function Ingreso({submitCase,email,goMisCasos}){
           </div>
           <Field label="Ubicación exacta" hint="Piso, ascensor, estacionamiento…" full><input className="ctrl" value={f.ubicacion} onChange={e=>set("ubicacion",e.target.value)} /></Field>
           <Field label="Descripción" req err={errors.descripcion} full><textarea className="ctrl" placeholder="Describe el problema con el mayor detalle posible." value={f.descripcion} onChange={e=>set("descripcion",e.target.value)} /></Field>
-          <label className="check"><input type="checkbox" checked={f.emergencia} onChange={e=>set("emergencia",e.target.checked)} /><span className="t"><b>Es una situación de emergencia en curso</b><br/><span className="hint">Riesgo para las personas o el edificio. Elevaremos la prioridad al máximo.</span></span></label>
 
           <div className="sect-label" style={{marginTop:22}}>3 · Adjuntos</div>
           <div className="field full">
@@ -1179,7 +1205,7 @@ function Ingreso({submitCase,email,goMisCasos}){
           <div className="th"><span className="dot"></span><h4>Clasificación automática</h4></div>
           <div className="tb">
             {!cat && <span>Al elegir el motivo verás aquí cómo se clasificará el caso: prioridad, responsable y qué hará el sistema.</span>}
-            {cat && <div className="fadein" key={f.catId+f.emergencia}>
+            {cat && <div className="fadein" key={f.catId}>
               <div className="trow"><span className="k">Área</span><span className="v">{FAMILIAS[cat.fam].label}</span></div>
               <div className="trow"><span className="k">Prioridad</span><span className="v"><Pill kind={prioClass(prioridad)} text={prioridad} /></span></div>
               <div className="trow"><span className="k">Responsable</span><span className="v">{cat.resp}</span></div>

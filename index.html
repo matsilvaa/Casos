@@ -1467,9 +1467,13 @@ function Panel({tickets,porFolio,onOpen,goPortal,verCasos}){
   const maxBucket = Math.max(1, ...bucketCounts.map(x=>x.n));
 
   const total=filtered.length; const by=(k,v)=>filtered.filter(t=>t[k]===v).length;
+  // Los cuadros de distribución excluyen los cerrados, salvo que se filtre explícitamente por «Cerrado».
+  const activos = fEstatus==="Cerrado" ? filtered : filtered.filter(t=>t.estatus!=="Cerrado");
+  const byAct=(k,v)=>activos.filter(t=>t[k]===v).length; const totalAct=activos.length;
+  const notaAct = fEstatus==="Cerrado" ? "" : " · sin cerrados";
   const emergAbiertas=filtered.filter(t=>t.prioridad==="Emergencia"&&t.estatus!=="Cerrado").length;
-  const famCounts=Object.keys(FAMILIAS).map(k=>({k,label:FAMILIAS[k].label,n:filtered.filter(t=>t.familia===k).length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n);
-  const edCounts=EDIFICIOS.map(e=>({e,n:filtered.filter(t=>t.edificio===e).length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n);
+  const famCounts=Object.keys(FAMILIAS).map(k=>({k,label:FAMILIAS[k].label,n:activos.filter(t=>t.familia===k).length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n);
+  const edCounts=EDIFICIOS.map(e=>({e,n:activos.filter(t=>t.edificio===e).length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n);
   const maxFam=Math.max(1,...famCounts.map(x=>x.n)); const maxEd=Math.max(1,...edCounts.map(x=>x.n));
   const recientes=[...filtered].sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt)).slice(0,6);
   const prioColor={Emergencia:"var(--emerg)",Alta:"var(--alta)",Media:"var(--media)",Baja:"var(--baja)"};
@@ -1507,11 +1511,11 @@ function Panel({tickets,porFolio,onOpen,goPortal,verCasos}){
         ? <div className="card"><div className="empty-state"><div className="em-ic">✧</div>No hay casos con estos filtros.</div></div>
         : <>
           <div className="dash-grid">
-            <div className="card pad"><div className="block-title" style={{marginTop:0}}>Casos por edificio</div>{edCounts.map(x=><button className="bar-row" key={x.e} onClick={()=>verCasos&&verCasos({edificio:x.e})} title={`Ver casos de ${x.e}`}><div className="bl"><span className="bn">{x.e}</span><span className="bc">{x.n}</span></div><div className="bar"><span style={{width:(x.n/maxEd*100)+"%"}}></span></div></button>)}</div>
-            <div className="card pad"><div className="block-title" style={{marginTop:0}}>Casos por área</div>{famCounts.map(x=><button className="bar-row" key={x.k} onClick={()=>verCasos&&verCasos({area:x.k})} title={`Ver casos de ${x.label}`}><div className="bl"><span className="bn">{x.label}</span><span className="bc">{x.n}</span></div><div className="bar"><span style={{width:(x.n/maxFam*100)+"%"}}></span></div></button>)}</div>
+            <div className="card pad"><div className="block-title" style={{marginTop:0}}>Casos por edificio<span className="hint" style={{fontWeight:400}}>{notaAct}</span></div>{edCounts.map(x=><button className="bar-row" key={x.e} onClick={()=>verCasos&&verCasos({edificio:x.e})} title={`Ver casos de ${x.e}`}><div className="bl"><span className="bn">{x.e}</span><span className="bc">{x.n}</span></div><div className="bar"><span style={{width:(x.n/maxEd*100)+"%"}}></span></div></button>)}</div>
+            <div className="card pad"><div className="block-title" style={{marginTop:0}}>Casos por área<span className="hint" style={{fontWeight:400}}>{notaAct}</span></div>{famCounts.map(x=><button className="bar-row" key={x.k} onClick={()=>verCasos&&verCasos({area:x.k})} title={`Ver casos de ${x.label}`}><div className="bl"><span className="bn">{x.label}</span><span className="bc">{x.n}</span></div><div className="bar"><span style={{width:(x.n/maxFam*100)+"%"}}></span></div></button>)}</div>
           </div>
           <div className="dash-grid" style={{marginTop:18}}>
-            <div className="card pad"><div className="block-title" style={{marginTop:0}}>Por prioridad</div>{["Emergencia","Alta","Media","Baja"].map(p=><button className="bar-row" key={p} onClick={()=>verCasos&&verCasos({prioridad:p})} title={`Ver casos de prioridad ${p}`}><div className="bl"><span className="bn">{p}</span><span className="bc">{by("prioridad",p)}</span></div><div className="bar"><span style={{width:(by("prioridad",p)/Math.max(1,total)*100)+"%",background:prioColor[p]}}></span></div></button>)}</div>
+            <div className="card pad"><div className="block-title" style={{marginTop:0}}>Por prioridad<span className="hint" style={{fontWeight:400}}>{notaAct}</span></div>{["Emergencia","Alta","Media","Baja"].map(p=><button className="bar-row" key={p} onClick={()=>verCasos&&verCasos({prioridad:p})} title={`Ver casos de prioridad ${p}`}><div className="bl"><span className="bn">{p}</span><span className="bc">{byAct("prioridad",p)}</span></div><div className="bar"><span style={{width:(byAct("prioridad",p)/Math.max(1,totalAct)*100)+"%",background:prioColor[p]}}></span></div></button>)}</div>
             <div className="card pad"><div className="block-title" style={{marginTop:0}}>Por estatus</div>{["Recibido","En proceso","Cerrado"].map(s=><button className="bar-row" key={s} onClick={()=>verCasos&&verCasos({estatus:s})} title={`Ver casos ${s}`}><div className="bl"><span className="bn">{s}</span><span className="bc">{by("estatus",s)}</span></div><div className="bar"><span style={{width:(by("estatus",s)/Math.max(1,total)*100)+"%",background:s==="Cerrado"?"var(--cerrado)":s==="En proceso"?"var(--proceso)":"var(--recibido)"}}></span></div></button>)}</div>
           </div>
           <div className="dash-grid" style={{marginTop:18}}>

@@ -1303,6 +1303,12 @@ function Detail({entry,porFolio,onClose,update,crearRelacionado,related,openTick
     update(t.id,patch,"Respuesta registrada.","ok",detalle); setResp("");
   };
   const setStatus=(s)=>update(t.id,{estatus:s},`Estatus actualizado a «${s}».`,"info",`Cambió el estatus de «${t.estatus}» a «${s}».`);
+  const addResident=()=>{
+    if(!resp.trim())return;
+    const patch={hilo:[...(t.hilo||[]),{autor:t.nombre,rol:"resident",porResidente:true,mensaje:resp.trim(),fecha:new Date().toISOString()}]};
+    update(t.id,patch,"Respuesta enviada.","ok","El residente respondió en la conversación.");
+    setResp("");
+  };
   const doRelacionado=async()=>{ if(!reText.trim())return; const nt=await crearRelacionado(t,reText.trim()); setReabrir(false); setReText(""); if(nt) openTicketByFolio(nt.folio); };
   return (
     <div className="scrim" onClick={onClose}>
@@ -1401,7 +1407,11 @@ function Detail({entry,porFolio,onClose,update,crearRelacionado,related,openTick
                     <textarea className="ctrl" placeholder="Escribe una respuesta para el residente…" value={resp} onChange={e=>setResp(e.target.value)} style={{minHeight:80}} />
                     <div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}><button className="btn primary sm" onClick={addStaff} disabled={!resp.trim()}>Registrar respuesta</button></div>
                   </div>
-                : <div className="locknote" style={{marginTop:12}}><span>⏳</span><span>Tu caso está en gestión. Te avisaremos por aquí cuando la administración responda.</span></div>)}
+                : <div style={{marginTop:12}}>
+                    <textarea className="ctrl" placeholder="Escribe una respuesta a la administración…" value={resp} onChange={e=>setResp(e.target.value)} style={{minHeight:80}} />
+                    <div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}><button className="btn primary sm" onClick={addResident} disabled={!resp.trim()}>Enviar respuesta</button></div>
+                    <div className="locknote" style={{marginTop:10}}><span>💬</span><span>La administración verá tu respuesta y te avisará por aquí cuando conteste.</span></div>
+                  </div>)}
 
           {isAdmin && <>
             <div className="block-title">Registro de modificaciones</div>

@@ -1245,7 +1245,7 @@ function MisCasos({tickets,email,onOpen}){
 function Portal({tickets,porFolio,initEd,initFiltro,goPanel,onOpen}){
   const ini=initFiltro||{};
   const [fEstatus,setFEstatus]=useState(ini.estatus||"Abiertos"); const [fPrio,setFPrio]=useState(ini.prioridad||"Todas"); const [fArea,setFArea]=useState(ini.area||"Todas"); const [q,setQ]=useState("");
-  const [eds,setEds]=useState(ini.edificio?[ini.edificio]:(initEd?[initEd]:[])); const [fEdad,setFEdad]=useState("Todas"); const [orden,setOrden]=useState("prioridad");
+  const [eds,setEds]=useState(ini.edificio?[ini.edificio]:(initEd?[initEd]:[])); const [fEdad,setFEdad]=useState(ini.edad||"Todas"); const [orden,setOrden]=useState("prioridad");
   const estatuses=["Abiertos","Recibido","En proceso","Cerrado","Todos"]; const prios=["Todas","Emergencia","Alta","Media","Baja"];
   const list=useMemo(()=>tickets.filter(t=>{
     if(fEstatus==="Abiertos" && t.estatus==="Cerrado") return false;
@@ -1266,8 +1266,8 @@ function Portal({tickets,porFolio,initEd,initFiltro,goPanel,onOpen}){
   return (
     <div>
       <div className="view-head"><div className="kicker">Administración</div><h2>Bandeja de casos</h2><p>Todos los edificios en una sola vista. Filtra por edificio, área, prioridad, estado o antigüedad.</p></div>
-      {goPanel && (ini.edificio||ini.prioridad||ini.area||ini.estatus) && <div className="card pad" style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,marginBottom:14,background:"var(--primary-soft)",borderColor:"#CFE1E1"}}>
-        <div style={{fontSize:13.5}}>Mostrando el filtro que elegiste en el Panel{ini.edificio?`: ${ini.edificio}`:ini.prioridad?`: prioridad ${ini.prioridad}`:ini.area&&FAMILIAS[ini.area]?`: ${FAMILIAS[ini.area].label}`:ini.estatus?`: ${ini.estatus}`:""}. Puedes ajustar los filtros abajo.</div>
+      {goPanel && (ini.edificio||ini.prioridad||ini.area||ini.estatus||ini.edad) && <div className="card pad" style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,marginBottom:14,background:"var(--primary-soft)",borderColor:"#CFE1E1"}}>
+        <div style={{fontSize:13.5}}>Mostrando el filtro que elegiste en el Panel{ini.edificio?`: ${ini.edificio}`:ini.prioridad?`: prioridad ${ini.prioridad}`:ini.area&&FAMILIAS[ini.area]?`: ${FAMILIAS[ini.area].label}`:ini.estatus?`: ${ini.estatus}`:ini.edad?`: antigüedad ${ini.edad}`:""}. Puedes ajustar los filtros abajo.</div>
         <button className="btn ghost sm" onClick={goPanel} style={{whiteSpace:"nowrap"}}>← Volver al Panel</button>
       </div>}
       <div className="filters">
@@ -1523,10 +1523,12 @@ function Panel({tickets,porFolio,onOpen,goPortal,verCasos}){
               <div className="block-title" style={{marginTop:0}}>Casos abiertos por antigüedad</div>
               {conEdad.length===0
                 ? <div className="hint">No hay casos abiertos con estos filtros.</div>
-                : bucketCounts.map(b=><div className="bar-row" key={b.k}>
-                    <div className="bl"><span className="bn">{b.k}</span><span className="bc">{b.n}</span></div>
-                    <div className="bar"><span style={{width:(b.n/maxBucket*100)+"%",background:b.color}}></span></div>
-                  </div>)}
+                : bucketCounts.map(b=>b.n===0
+                    ? <div className="bar-row" key={b.k}><div className="bl"><span className="bn">{b.k}</span><span className="bc">{b.n}</span></div><div className="bar"><span style={{width:"0%",background:b.color}}></span></div></div>
+                    : <button className="bar-row" key={b.k} onClick={()=>verCasos&&verCasos({edad:b.k})} title={`Ver casos abiertos de ${b.k}`}>
+                        <div className="bl"><span className="bn">{b.k}</span><span className="bc">{b.n}</span></div>
+                        <div className="bar"><span style={{width:(b.n/maxBucket*100)+"%",background:b.color}}></span></div>
+                      </button>)}
               <div className="hint" style={{marginTop:8}}>El tiempo acumula la cadena: si un caso hace referencia a uno anterior, suma ambos.</div>
             </div>
             <div className="card pad">

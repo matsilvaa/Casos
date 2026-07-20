@@ -251,6 +251,8 @@
   .kpi.alert .n{color:var(--emerg)}
   .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
   .bar-row{margin-bottom:12px}
+  button.bar-row{display:block;width:100%;text-align:left;background:none;border:0;padding:6px;margin:0 -6px 6px;border-radius:8px;cursor:pointer;font:inherit;color:inherit}
+  button.bar-row:hover{background:var(--primary-soft)}
   .bar-row .bl{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
   .bar-row .bl .bn{font-weight:600}.bar-row .bl .bc{color:var(--muted);font-variant-numeric:tabular-nums}
   .bar{height:9px;border-radius:6px;background:#EDF1F1;overflow:hidden}
@@ -711,6 +713,7 @@ function App(){
   const [authError,setAuthError]=useState("");
   const [view,setView]=useState("ingreso");
   const [preEdificio,setPreEdificio]=useState(null);
+  const [preFiltro,setPreFiltro]=useState(null);
   const [maestros,setMaestros]=useState(false);
   const [ver,setVer]=useState(0);   // fuerza redibujo cuando cambian los datos maestros
   const [sel,setSel]=useState(null);
@@ -901,8 +904,9 @@ function App(){
   const findRelated=(folio)=> tickets.filter(t=>t.relacionadoCon===folio);
   const abiertos=tickets.filter(t=>t.estatus!=="Cerrado").length;
   const porFolio=Object.fromEntries(tickets.map(t=>[t.folio,t]));
-  const navegar=(v)=>{ setPreEdificio(null); setView(v); };
-  const verCasosEdificio=(e)=>{ setPreEdificio(e); setView("portal"); };
+  const navegar=(v)=>{ setPreEdificio(null); setPreFiltro(null); setView(v); };
+  const verCasosEdificio=(e)=>{ setPreEdificio(e); setPreFiltro(null); setView("portal"); };
+  const verCasosFiltro=(f)=>{ setPreEdificio(null); setPreFiltro(f); setView("portal"); };
 
   return (
     <div className="app">
@@ -935,8 +939,8 @@ function App(){
         <div className="content">
           {!esAdmin && view==="ingreso" && <Ingreso submitCase={submitCase} email={user.email} goMisCasos={()=>setView("miscasos")} />}
           {!esAdmin && view==="miscasos" && <MisCasos tickets={tickets} email={user.email} onOpen={t=>setSel({ticket:t,mode:"residente"})} />}
-          {esAdmin && view==="portal" && <Portal tickets={tickets} porFolio={porFolio} initEd={preEdificio} onOpen={t=>setSel({ticket:t,mode:"admin"})} />}
-          {esAdmin && view==="panel" && <Panel tickets={tickets} porFolio={porFolio} onOpen={t=>setSel({ticket:t,mode:"admin"})} goPortal={()=>navegar("portal")} />}
+          {esAdmin && view==="portal" && <Portal tickets={tickets} porFolio={porFolio} initEd={preEdificio} initFiltro={preFiltro} goPanel={()=>navegar("panel")} onOpen={t=>setSel({ticket:t,mode:"admin"})} />}
+          {esAdmin && view==="panel" && <Panel tickets={tickets} porFolio={porFolio} onOpen={t=>setSel({ticket:t,mode:"admin"})} goPortal={()=>navegar("portal")} verCasos={verCasosFiltro} />}
           {esAdmin && view==="edificios" && <PanelEdificios tickets={tickets} porFolio={porFolio} verCasos={verCasosEdificio} />}
           {esAdmin && view==="reglas" && <Configuracion user={user} puedeEditar={ADMIN_SISTEMA.includes(norm(user.email))} onCambio={()=>setVer(v=>v+1)} ver={ver} toast={toast} />}
           {esAdmin && view==="ajustes" && <Ajustes user={user} tickets={tickets} toast={toast} />}
@@ -1238,9 +1242,10 @@ function MisCasos({tickets,email,onOpen}){
 }
 
 /* ========================= BANDEJA (ADMIN) ========================= */
-function Portal({tickets,porFolio,initEd,onOpen}){
-  const [fEstatus,setFEstatus]=useState("Abiertos"); const [fPrio,setFPrio]=useState("Todas"); const [fArea,setFArea]=useState("Todas"); const [q,setQ]=useState("");
-  const [eds,setEds]=useState(initEd?[initEd]:[]); const [fEdad,setFEdad]=useState("Todas"); const [orden,setOrden]=useState("prioridad");
+function Portal({tickets,porFolio,initEd,initFiltro,goPanel,onOpen}){
+  const ini=initFiltro||{};
+  const [fEstatus,setFEstatus]=useState(ini.estatus||"Abiertos"); const [fPrio,setFPrio]=useState(ini.prioridad||"Todas"); const [fArea,setFArea]=useState(ini.area||"Todas"); const [q,setQ]=useState("");
+  const [eds,setEds]=useState(ini.edificio?[ini.edificio]:(initEd?[initEd]:[])); const [fEdad,setFEdad]=useState("Todas"); const [orden,setOrden]=useState("prioridad");
   const estatuses=["Abiertos","Recibido","En proceso","Cerrado","Todos"]; const prios=["Todas","Emergencia","Alta","Media","Baja"];
   const list=useMemo(()=>tickets.filter(t=>{
     if(fEstatus==="Abiertos" && t.estatus==="Cerrado") return false;
@@ -1261,6 +1266,10 @@ function Portal({tickets,porFolio,initEd,onOpen}){
   return (
     <div>
       <div className="view-head"><div className="kicker">Administración</div><h2>Bandeja de casos</h2><p>Todos los edificios en una sola vista. Filtra por edificio, área, prioridad, estado o antigüedad.</p></div>
+      {goPanel && (ini.edificio||ini.prioridad||ini.area||ini.estatus) && <div className="card pad" style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,marginBottom:14,background:"var(--primary-soft)",borderColor:"#CFE1E1"}}>
+        <div style={{fontSize:13.5}}>Mostrando el filtro que elegiste en el Panel{ini.edificio?`: ${ini.edificio}`:ini.prioridad?`: prioridad ${ini.prioridad}`:ini.area&&FAMILIAS[ini.area]?`: ${FAMILIAS[ini.area].label}`:ini.estatus?`: ${ini.estatus}`:""}. Puedes ajustar los filtros abajo.</div>
+        <button className="btn ghost sm" onClick={goPanel} style={{whiteSpace:"nowrap"}}>← Volver al Panel</button>
+      </div>}
       <div className="filters">
         {estatuses.map(s=><button key={s} className={"chip"+(fEstatus===s?" active":"")} onClick={()=>setFEstatus(s)}>{s}</button>)}
         <div style={{width:1,height:22,background:"var(--line)"}}></div>
@@ -1434,7 +1443,7 @@ function Detail({entry,porFolio,onClose,update,crearRelacionado,related,openTick
 }
 
 /* ========================= PANEL (ADMIN) ========================= */
-function Panel({tickets,porFolio,onOpen,goPortal}){
+function Panel({tickets,porFolio,onOpen,goPortal,verCasos}){
   const [fEstatus,setFEstatus]=useState("Todos"); const [eds,setEds]=useState([]); const [fArea,setFArea]=useState("Todas"); const [fPrio,setFPrio]=useState("Todas"); const [fUnidad,setFUnidad]=useState(""); const [fEdad,setFEdad]=useState("Todas");
   const estatuses=["Todos","Abiertos","Recibido","En proceso","Cerrado"]; const prios=["Todas","Emergencia","Alta","Media","Baja"];
   const filtered=useMemo(()=>tickets.filter(t=>{
@@ -1498,12 +1507,12 @@ function Panel({tickets,porFolio,onOpen,goPortal}){
         ? <div className="card"><div className="empty-state"><div className="em-ic">✧</div>No hay casos con estos filtros.</div></div>
         : <>
           <div className="dash-grid">
-            <div className="card pad"><div className="block-title" style={{marginTop:0}}>Casos por edificio</div>{edCounts.map(x=><div className="bar-row" key={x.e}><div className="bl"><span className="bn">{x.e}</span><span className="bc">{x.n}</span></div><div className="bar"><span style={{width:(x.n/maxEd*100)+"%"}}></span></div></div>)}</div>
-            <div className="card pad"><div className="block-title" style={{marginTop:0}}>Casos por área</div>{famCounts.map(x=><div className="bar-row" key={x.k}><div className="bl"><span className="bn">{x.label}</span><span className="bc">{x.n}</span></div><div className="bar"><span style={{width:(x.n/maxFam*100)+"%"}}></span></div></div>)}</div>
+            <div className="card pad"><div className="block-title" style={{marginTop:0}}>Casos por edificio</div>{edCounts.map(x=><button className="bar-row" key={x.e} onClick={()=>verCasos&&verCasos({edificio:x.e})} title={`Ver casos de ${x.e}`}><div className="bl"><span className="bn">{x.e}</span><span className="bc">{x.n}</span></div><div className="bar"><span style={{width:(x.n/maxEd*100)+"%"}}></span></div></button>)}</div>
+            <div className="card pad"><div className="block-title" style={{marginTop:0}}>Casos por área</div>{famCounts.map(x=><button className="bar-row" key={x.k} onClick={()=>verCasos&&verCasos({area:x.k})} title={`Ver casos de ${x.label}`}><div className="bl"><span className="bn">{x.label}</span><span className="bc">{x.n}</span></div><div className="bar"><span style={{width:(x.n/maxFam*100)+"%"}}></span></div></button>)}</div>
           </div>
           <div className="dash-grid" style={{marginTop:18}}>
-            <div className="card pad"><div className="block-title" style={{marginTop:0}}>Por prioridad</div>{["Emergencia","Alta","Media","Baja"].map(p=><div className="bar-row" key={p}><div className="bl"><span className="bn">{p}</span><span className="bc">{by("prioridad",p)}</span></div><div className="bar"><span style={{width:(by("prioridad",p)/Math.max(1,total)*100)+"%",background:prioColor[p]}}></span></div></div>)}</div>
-            <div className="card pad"><div className="block-title" style={{marginTop:0}}>Por estatus</div>{["Recibido","En proceso","Cerrado"].map(s=><div className="bar-row" key={s}><div className="bl"><span className="bn">{s}</span><span className="bc">{by("estatus",s)}</span></div><div className="bar"><span style={{width:(by("estatus",s)/Math.max(1,total)*100)+"%",background:s==="Cerrado"?"var(--cerrado)":s==="En proceso"?"var(--proceso)":"var(--recibido)"}}></span></div></div>)}</div>
+            <div className="card pad"><div className="block-title" style={{marginTop:0}}>Por prioridad</div>{["Emergencia","Alta","Media","Baja"].map(p=><button className="bar-row" key={p} onClick={()=>verCasos&&verCasos({prioridad:p})} title={`Ver casos de prioridad ${p}`}><div className="bl"><span className="bn">{p}</span><span className="bc">{by("prioridad",p)}</span></div><div className="bar"><span style={{width:(by("prioridad",p)/Math.max(1,total)*100)+"%",background:prioColor[p]}}></span></div></button>)}</div>
+            <div className="card pad"><div className="block-title" style={{marginTop:0}}>Por estatus</div>{["Recibido","En proceso","Cerrado"].map(s=><button className="bar-row" key={s} onClick={()=>verCasos&&verCasos({estatus:s})} title={`Ver casos ${s}`}><div className="bl"><span className="bn">{s}</span><span className="bc">{by("estatus",s)}</span></div><div className="bar"><span style={{width:(by("estatus",s)/Math.max(1,total)*100)+"%",background:s==="Cerrado"?"var(--cerrado)":s==="En proceso"?"var(--proceso)":"var(--recibido)"}}></span></div></button>)}</div>
           </div>
           <div className="dash-grid" style={{marginTop:18}}>
             <div className="card pad">

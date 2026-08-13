@@ -373,6 +373,7 @@ const RESPONSABLES = ["Administración","Conserjería","Mantención","Aseo","Seg
 /* Solo estos correos pueden editar los edificios y las reglas de tipificación.
    El resto de los encargados las ve, pero no las modifica. */
 const ADMIN_SISTEMA = ["matias@cumbregi.com","ramon@cumbregi.com"];
+const ADMIN_CORREOS = ["matias@cumbregi.com","ramon@cumbregi.com","mijail@cumbregi.com"];
 
 /* Edificios y tipificación viven en Firestore (colección 'edificios' y documento 'config/tipificacion').
    Estos valores son solo el respaldo inicial, si la base todavía está vacía. */
@@ -925,6 +926,7 @@ function App(){
             <NavBtn id="portal" cur={view} set={navegar} ico="≡" label="Bandeja" badge={abiertos||null} />
             <NavBtn id="panel" cur={view} set={navegar} ico="▦" label="Panel" />
             <NavBtn id="edificios" cur={view} set={navegar} ico="▩" label="Por edificio" />
+            {ADMIN_CORREOS.includes(norm(user.email)) && <NavBtn id="correos" cur={view} set={navegar} ico="✉" label="Correos" />}
             <NavBtn id="reglas" cur={view} set={navegar} ico="▤" label="Configuración" />
             <NavBtn id="ajustes" cur={view} set={navegar} ico="⚙" label="Ajustes" />
           </>}
@@ -942,6 +944,7 @@ function App(){
           {esAdmin && view==="portal" && <Portal tickets={tickets} porFolio={porFolio} initEd={preEdificio} initFiltro={preFiltro} goPanel={()=>navegar("panel")} onOpen={t=>setSel({ticket:t,mode:"admin"})} />}
           {esAdmin && view==="panel" && <Panel tickets={tickets} porFolio={porFolio} onOpen={t=>setSel({ticket:t,mode:"admin"})} goPortal={()=>navegar("portal")} verCasos={verCasosFiltro} />}
           {esAdmin && view==="edificios" && <PanelEdificios tickets={tickets} porFolio={porFolio} verCasos={verCasosEdificio} />}
+          {esAdmin && view==="correos" && ADMIN_CORREOS.includes(norm(user.email)) && <Correos />}
           {esAdmin && view==="reglas" && <Configuracion user={user} puedeEditar={ADMIN_SISTEMA.includes(norm(user.email))} onCambio={()=>setVer(v=>v+1)} ver={ver} toast={toast} />}
           {esAdmin && view==="ajustes" && <Ajustes user={user} tickets={tickets} toast={toast} />}
         </div>
@@ -1554,6 +1557,216 @@ function Panel({tickets,porFolio,onOpen,goPortal,verCasos}){
               <div><div className="tt">{t.categoria}</div><div className="meta">{t.edificio} · Depto {t.unidad} · actualizado {relDays(t.updatedAt)}</div></div>
               <div className="rt"><Pill kind={statClass(t.estatus)} text={t.estatus} /></div>
             </button>)}</div>
+          </div>
+        </>}
+    </div>
+  );
+}
+
+/* ========================= CORREOS (triage) ========================= */
+
+const FAM_POR_LABEL = Object.fromEntries(Object.entries(FAMILIAS).map(([k,v])=>[v.label,k]));
+
+function Correos(){
+  const [rows,setRows]=useState(null);
+  const [err,setErr]=useState(null);
+  const [fEd,setFEd]=useState([]);
+  const [fArea,setFArea]=useState("Todas");
+  const [fUrg,setFUrg]=useState("Todas");
+  const [fTipo,setFTipo]=useState("Todos");
+  const [fEdad,setFEdad]=useState("Todas");
+  const [nombresEd,setNombresEd]=useState({});
+
+  useEffect(()=>{
+    let vivo=true;
+    (async()=>{
+      try{
+        const [snapC,snapE]=await Promise.all([
+          db.collection("email-triage").get(),
+          db.collection("edificios").get()
+        ]);
+        if(!vivo) return;
+        setNombresEd(Object.fromEntries(snapE.docs.map(d=>[d.id,(d.data()||{}).nombre||d.id])));
+        setRows(snapC.docs.map(d=>({id:d.id,...d.data()})));
+      }catch(e){ if(vivo) setErr(e.message||String(e)); }
+    })();
+    return ()=>{vivo=false};
+  },[]);
+
+  if(err) return <div className="view"><div className="card pad"><div className="err-box">No se pudieron cargar los correos: {err}</div></div></div>;
+  if(!rows) return <div className="loader">Cargando correos…</div>;
+
+  const edNombre = s => nombresEd[s] || s || "Sin asignar";
+  const msDesde = c => {
+    const f = c.primerMensajeFecha || c.ultimoMensajeFecha;
+    if(!f) return 0;
+    const t = f.toDate ? f.toDate().getTime() : new Date(f).getTime();
+    return isNaN(t) ? 0 : Date.now() - t;
+  };
+
+  const pendientes = rows.filter(c=>c.ultimoMensajeDireccion!=="saliente" && c.requiereRespuesta!==false);
+  const esperando  = rows.filter(c=>c.ultimoMensajeDireccion==="saliente");
+
+  const filtrados = pendientes.filter(c=>{
+    if(fEd.length && !fEd.includes(edNombre(c.mailbox))) return false;
+    if(fArea!=="Todas" && FAM_POR_LABEL[c.area]!==fArea) return false;
+    if(fUrg!=="Todas" && (c.urgencia||"").toLowerCase()!==fUrg.toLowerCase()) return false;
+    if(fTipo!=="Todos" && c.remitenteTipo!==fTipo) return false;
+    if(fEdad!=="Todas"){ const b=BUCKETS.find(x=>x.k===fEdad); if(b && !b.test(dias(msDesde(c)))) return false; }
+    return true;
+  });
+
+  const cuenta = (arr,fn)=>{
+    const m={}; arr.forEach(c=>{const k=fn(c); if(k) m[k]=(m[k]||0)+1;});
+    return Object.entries(m).map(([k,n])=>({k,n})).sort((a,b)=>b.n-a.n);
+  };
+
+  const porEd   = cuenta(filtrados,c=>edNombre(c.mailbox));
+  const porArea = cuenta(filtrados,c=>c.area||"Sin clasificar");
+  const porTipo = cuenta(filtrados,c=>c.remitenteTipo||"—");
+  const maxEd   = Math.max(1,...porEd.map(x=>x.n));
+  const maxArea = Math.max(1,...porArea.map(x=>x.n));
+  const maxTipo = Math.max(1,...porTipo.map(x=>x.n));
+
+  const urg = ["alta","media","baja"].map(u=>({u,n:filtrados.filter(c=>(c.urgencia||"").toLowerCase()===u).length}));
+  const urgColor = {alta:"var(--emerg)",media:"var(--media)",baja:"var(--baja)"};
+
+  const buckets = BUCKETS.map(b=>({...b,n:filtrados.filter(c=>b.test(dias(msDesde(c)))).length}));
+  const maxB = Math.max(1,...buckets.map(x=>x.n));
+
+  const conEdad = filtrados.map(c=>({c,ms:msDesde(c)})).sort((a,b)=>b.ms-a.ms);
+  const promedio = conEdad.length ? conEdad.reduce((s,x)=>s+x.ms,0)/conEdad.length : 0;
+  const altas = filtrados.filter(c=>(c.urgencia||"").toLowerCase()==="alta").length;
+
+  const edificiosLista = [...new Set(pendientes.map(c=>edNombre(c.mailbox)))].sort();
+  const activo = fEd.length||fArea!=="Todas"||fUrg!=="Todas"||fTipo!=="Todos"||fEdad!=="Todas";
+  const limpiar = ()=>{setFEd([]);setFArea("Todas");setFUrg("Todas");setFTipo("Todos");setFEdad("Todas");};
+
+  const abrirOutlook = c => window.open("https://outlook.office.com/mail/inbox/id/"+encodeURIComponent(c.messageId||""),"_blank");
+
+  return (
+    <div className="view">
+      <div className="view-head">
+        <div className="kicker">Administración</div>
+        <h2>Correos</h2>
+        <p>Correos entrantes que aún esperan respuesta de Cumbre. Al abrir uno se va a Outlook.</p>
+      </div>
+
+      <div className="filters">
+        <MultiSelect options={edificiosLista} selected={fEd} onChange={setFEd} label="Edificios" />
+        <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={fArea} onChange={e=>setFArea(e.target.value)}>
+          <option value="Todas">Todas las áreas</option>
+          {Object.entries(FAMILIAS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
+        </select>
+        <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={fUrg} onChange={e=>setFUrg(e.target.value)}>
+          <option value="Todas">Todas las prioridades</option>
+          <option value="alta">Alta</option><option value="media">Media</option><option value="baja">Baja</option>
+        </select>
+        <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={fTipo} onChange={e=>setFTipo(e.target.value)}>
+          <option value="Todos">Todo remitente</option>
+          <option value="residente">Residente</option><option value="comite">Comité</option><option value="proveedor">Proveedor</option>
+        </select>
+        <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={fEdad} onChange={e=>setFEdad(e.target.value)}>
+          <option value="Todas">Toda antigüedad</option>
+          {BUCKETS.map(b=><option key={b.k} value={b.k}>{b.k}</option>)}
+        </select>
+        {activo && <button className="btn ghost sm" onClick={limpiar}>Limpiar filtros</button>}
+      </div>
+
+      <div className="kpis">
+        <div className="kpi"><div className="n">{filtrados.length}</div><div className="l">Pendientes de Cumbre</div></div>
+        <div className={"kpi"+(altas?" alert":"")}><div className="n">{altas}</div><div className="l">Prioridad alta</div></div>
+        <div className="kpi"><div className="n">{esperando.length}</div><div className="l">Esperando al residente</div></div>
+        <div className="kpi"><div className="n" style={{fontSize:24}}>{conEdad.length?fmtDur(promedio):"—"}</div><div className="l">Antigüedad promedio</div></div>
+        <div className={"kpi"+(conEdad.length&&dias(conEdad[0].ms)>=8?" alert":"")}><div className="n" style={{fontSize:24}}>{conEdad.length?fmtDur(conEdad[0].ms):"—"}</div><div className="l">Más antiguo</div></div>
+      </div>
+
+      {filtrados.length===0
+        ? <div className="card"><div className="empty-state"><div className="em-ic">✧</div>No hay correos pendientes con estos filtros.</div></div>
+        : <>
+          <div className="dash-grid">
+            <div className="card pad">
+              <div className="block-title" style={{marginTop:0}}>Correos por edificio</div>
+              {porEd.map(x=><button className="bar-row" key={x.k} onClick={()=>setFEd([x.k])} title={"Ver correos de "+x.k}>
+                <div className="bl"><span className="bn">{x.k}</span><span className="bc">{x.n}</span></div>
+                <div className="bar"><span style={{width:(x.n/maxEd*100)+"%"}}></span></div>
+              </button>)}
+            </div>
+            <div className="card pad">
+              <div className="block-title" style={{marginTop:0}}>Correos por área</div>
+              {porArea.map(x=><button className="bar-row" key={x.k} onClick={()=>FAM_POR_LABEL[x.k]&&setFArea(FAM_POR_LABEL[x.k])} title={"Ver correos de "+x.k}>
+                <div className="bl"><span className="bn">{x.k}</span><span className="bc">{x.n}</span></div>
+                <div className="bar"><span style={{width:(x.n/maxArea*100)+"%"}}></span></div>
+              </button>)}
+            </div>
+          </div>
+
+          <div className="dash-grid" style={{marginTop:18}}>
+            <div className="card pad">
+              <div className="block-title" style={{marginTop:0}}>Por prioridad</div>
+              {urg.map(x=><button className="bar-row" key={x.u} onClick={()=>setFUrg(x.u)} title={"Ver prioridad "+x.u}>
+                <div className="bl"><span className="bn">{x.u.charAt(0).toUpperCase()+x.u.slice(1)}</span><span className="bc">{x.n}</span></div>
+                <div className="bar"><span style={{width:(x.n/Math.max(1,filtrados.length)*100)+"%",background:urgColor[x.u]}}></span></div>
+              </button>)}
+            </div>
+            <div className="card pad">
+              <div className="block-title" style={{marginTop:0}}>Por tipo de remitente</div>
+              {porTipo.map(x=><button className="bar-row" key={x.k} onClick={()=>setFTipo(x.k)} title={"Ver "+x.k}>
+                <div className="bl"><span className="bn">{x.k}</span><span className="bc">{x.n}</span></div>
+                <div className="bar"><span style={{width:(x.n/maxTipo*100)+"%"}}></span></div>
+              </button>)}
+            </div>
+          </div>
+
+          <div className="dash-grid" style={{marginTop:18}}>
+            <div className="card pad">
+              <div className="block-title" style={{marginTop:0}}>Pendientes por antigüedad</div>
+              {buckets.map(b=>b.n===0
+                ? <div className="bar-row" key={b.k}><div className="bl"><span className="bn">{b.k}</span><span className="bc">0</span></div><div className="bar"><span style={{width:"0%",background:b.color}}></span></div></div>
+                : <button className="bar-row" key={b.k} onClick={()=>setFEdad(b.k)} title={"Ver "+b.k}>
+                    <div className="bl"><span className="bn">{b.k}</span><span className="bc">{b.n}</span></div>
+                    <div className="bar"><span style={{width:(b.n/maxB*100)+"%",background:b.color}}></span></div>
+                  </button>)}
+              <div className="hint" style={{marginTop:8}}>Se mide desde el primer mensaje del hilo, no desde el último.</div>
+            </div>
+            <div className="card pad">
+              <div className="block-title" style={{marginTop:0}}>Más antiguos sin responder</div>
+              <div className="caselist" style={{border:0}}>
+                {conEdad.slice(0,6).map(({c,ms})=>(
+                  <button key={c.id} className={"caserow "+((c.urgencia||"").toLowerCase()==="alta"?"b-alta":"")} onClick={()=>abrirOutlook(c)}>
+                    <div><div style={{marginTop:6}}><span className={"edad "+edadClass(dias(ms))}>{fmtDur(ms)}</span></div></div>
+                    <div>
+                      <div className="tt" style={{fontSize:13.5}}>{c.subject||"(sin asunto)"}</div>
+                      <div className="meta">{edNombre(c.mailbox)} · {c.from} · {c.tema}</div>
+                    </div>
+                    <div className="rt">{c.escalamiento && <Pill kind="p-alta" text="Comité en copia" />}</div>
+                  </button>))}
+              </div>
+            </div>
+          </div>
+
+          {esperando.length>0 && <div className="card pad" style={{marginTop:18,background:"#FEF3C7",borderColor:"#D97706"}}>
+            <div style={{fontSize:13.5,color:"#78350F"}}>
+              <strong>{esperando.length}</strong> hilos donde Cumbre ya respondió y falta la confirmación del residente o del comité. No están cerrados —hasta que quede por escrito el acuerdo— pero tampoco requieren acción de ustedes ahora.
+            </div>
+          </div>}
+
+          <div className="card" style={{marginTop:18}}>
+            <div className="pad" style={{paddingBottom:0}}><div className="block-title" style={{margin:0}}>Todos los pendientes ({filtrados.length})</div></div>
+            <div className="caselist" style={{border:0,margin:"10px 0 0"}}>
+              {conEdad.map(({c,ms})=>(
+                <button key={c.id} className={"caserow "+((c.urgencia||"").toLowerCase()==="alta"?"b-alta":"")} onClick={()=>abrirOutlook(c)}>
+                  <div><div style={{marginTop:6}}><span className={"edad "+edadClass(dias(ms))}>{fmtDur(ms)}</span></div></div>
+                  <div>
+                    <div className="tt">{c.subject||"(sin asunto)"}</div>
+                    <div className="meta">{edNombre(c.mailbox)} · {c.from} · {c.tema}</div>
+                    <div className="hint" style={{marginTop:4}}>{(c.snippet||"").slice(0,120)}</div>
+                  </div>
+                  <div className="rt">
+                    {c.probablementeCerrado && <Pill kind="p-baja" text="Probablemente cerrado" />}
+                  </div>
+                </button>))}
+            </div>
           </div>
         </>}
     </div>

@@ -969,7 +969,7 @@ function App(){
           {esAdmin && view==="portal" && <Portal tickets={tickets} porFolio={porFolio} initEd={preEdificio} initFiltro={preFiltro} goPanel={()=>navegar("panel")} onOpen={t=>setSel({ticket:t,mode:"admin"})} />}
           {esAdmin && view==="panel" && <Panel tickets={tickets} porFolio={porFolio} onOpen={t=>setSel({ticket:t,mode:"admin"})} goPortal={()=>navegar("portal")} verCasos={verCasosFiltro} />}
           {esAdmin && view==="edificios" && <PanelEdificios tickets={tickets} porFolio={porFolio} verCasos={verCasosEdificio} />}
-          {esAdmin && view==="correos" && ES_CUMBRE(user.email) && <Correos />}
+          {esAdmin && view==="correos" && ES_CUMBRE(user.email) && <Correos toast={toast} />}
           {esAdmin && view==="reglas" && <Configuracion user={user} puedeEditar={ADMIN_SISTEMA.includes(norm(user.email))} onCambio={()=>setVer(v=>v+1)} ver={ver} toast={toast} />}
           {esAdmin && view==="ajustes" && <Ajustes user={user} tickets={tickets} toast={toast} />}
         </div>
@@ -1595,7 +1595,7 @@ function Panel({tickets,porFolio,onOpen,goPortal,verCasos}){
    se recalcula cada vez en vez de quedar congelado con los valores iniciales. */
 const famPorLabel = () => Object.fromEntries(Object.entries(FAMILIAS).map(([k,v])=>[v.label,k]));
 
-function Correos(){
+function Correos({toast}){
   const [rows,setRows]=useState(null);
   const [err,setErr]=useState(null);
   const [fEd,setFEd]=useState([]);
@@ -1692,6 +1692,67 @@ function Correos(){
     "_blank"
   );
 
+  /* Informe exportable de los correos PENDIENTES que están visibles con los
+     filtros actuales — el mismo conjunto que ve en pantalla, no toda la base.
+     No genera un mailto: con el contenido: los clientes de correo truncan el
+     cuerpo sin avisar bastante antes de 23 registros, y un envío que se corta
+     a la mitad sin que nadie lo note es peor que no tener el botón. En vez de
+     eso: un archivo para descargar, y una copia al portapapeles para pegar
+     directo en el cuerpo de un correo ya abierto (sin ese límite). */
+  const filtrosTexto = () => {
+    const partes = [];
+    partes.push(fEd.length ? `Edificios: ${fEd.join(", ")}` : "Edificios: todos");
+    partes.push(`Área: ${fArea === "Todas" ? "todas" : (FAMILIAS[fArea]?.label || fArea)}`);
+    partes.push(`Prioridad: ${fUrg === "Todas" ? "todas" : fUrg}`);
+    partes.push(`Remitente: ${fTipo === "Todos" ? "todos" : fTipo}`);
+    partes.push(`Antigüedad: ${fEdad === "Todas" ? "toda" : fEdad}`);
+    return partes.join(" · ");
+  };
+
+  const informeMarkdown = () => {
+    const ahora = new Date().toLocaleString("es-CL");
+    const lineas = [];
+    lineas.push(`# Correos pendientes — Mesa de Casos`);
+    lineas.push(``);
+    lineas.push(`Generado: ${ahora}`);
+    lineas.push(`Filtros: ${filtrosTexto()}`);
+    lineas.push(``);
+    lineas.push(`**${conEdad.length} correo${conEdad.length !== 1 ? "s" : ""} pendiente${conEdad.length !== 1 ? "s" : ""} de Cumbre** con estos filtros · ${altas} en prioridad alta.`);
+    lineas.push(``);
+    lineas.push(`---`);
+    lineas.push(``);
+    conEdad.forEach(({ c, ms }, i) => {
+      lineas.push(`### ${i + 1}. ${c.subject || "(sin asunto)"}`);
+      lineas.push(`- **Edificio:** ${edNombre(c.mailbox)}`);
+      lineas.push(`- **Remitente:** ${c.from || "—"}${c.remitenteTipo ? ` (${c.remitenteTipo})` : ""}`);
+      lineas.push(`- **Tema:** ${temaDe(c)}`);
+      lineas.push(`- **Prioridad:** ${c.urgencia || "—"}`);
+      lineas.push(`- **Antigüedad:** ${fmtDur(ms)}`);
+      if (c.escalamiento) lineas.push(`- **Comité en copia**`);
+      if (c.webLink) lineas.push(`- **Abrir en Outlook:** ${c.webLink}`);
+      if (c.snippet) lineas.push(``, `> ${c.snippet.replace(/\n/g, " ").slice(0, 240)}`);
+      lineas.push(``);
+    });
+    return lineas.join("\n");
+  };
+
+  const descargarInforme = () => {
+    if (!conEdad.length) { toast && toast("No hay correos pendientes con estos filtros.", "warn"); return; }
+    const fecha = new Date().toISOString().slice(0, 10);
+    descargarArchivo(`correos-pendientes-${fecha}.md`, informeMarkdown(), "text/markdown;charset=utf-8");
+    toast && toast(`Informe descargado: ${conEdad.length} correos.`);
+  };
+
+  const copiarInforme = async () => {
+    if (!conEdad.length) { toast && toast("No hay correos pendientes con estos filtros.", "warn"); return; }
+    try {
+      await navigator.clipboard.writeText(informeMarkdown());
+      toast && toast("Informe copiado. Pégalo en el cuerpo de un correo o mensaje.");
+    } catch (e) {
+      toast && toast("No se pudo copiar automáticamente. Usa «Descargar informe» en su lugar.", "warn");
+    }
+  };
+
   return (
     <div className="view">
       <div className="view-head">
@@ -1720,6 +1781,10 @@ function Correos(){
           {BUCKETS.map(b=><option key={b.k} value={b.k}>{b.k}</option>)}
         </select>
         {activo && <button className="btn ghost sm" onClick={limpiar}>Limpiar filtros</button>}
+        <div style={{marginLeft:"auto",display:"flex",gap:8}}>
+          <button className="btn ghost sm" onClick={copiarInforme}>Copiar informe</button>
+          <button className="btn sm" onClick={descargarInforme}>Descargar informe (.md)</button>
+        </div>
       </div>
 
       <div className="kpis">

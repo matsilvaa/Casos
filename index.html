@@ -1603,6 +1603,7 @@ function Correos({toast}){
   const [fUrg,setFUrg]=useState("Todas");
   const [fTipo,setFTipo]=useState("Todos");
   const [fEdad,setFEdad]=useState("Todas");
+  const [verEsperando,setVerEsperando]=useState(false);
   const [nombresEd,setNombresEd]=useState({});
 
   useEffect(()=>{
@@ -1709,32 +1710,74 @@ function Correos({toast}){
     return partes.join(" · ");
   };
 
+  const PRIORIDAD_RANGO = { alta: 0, media: 1, baja: 2 };
+  const PRIORIDAD_ICONO = { alta: "🔴", media: "🟡", baja: "⚪" };
+  const prioridadIcono = u => PRIORIDAD_ICONO[(u || "").toLowerCase()] || "⚫";
+  // Escapa el separador de columna: un "|" suelto en un asunto rompe la tabla.
+  const celda = (t, largo) => {
+    const s = String(t || "—").replace(/\|/g, "\\|").replace(/\n/g, " ");
+    return largo && s.length > largo ? s.slice(0, largo - 1) + "…" : s;
+  };
+
   const informeMarkdown = () => {
     const ahora = new Date().toLocaleString("es-CL");
-    const lineas = [];
-    lineas.push(`# Correos pendientes — Mesa de Casos`);
-    lineas.push(``);
-    lineas.push(`Generado: ${ahora}`);
-    lineas.push(`Filtros: ${filtrosTexto()}`);
-    lineas.push(``);
-    lineas.push(`**${conEdad.length} correo${conEdad.length !== 1 ? "s" : ""} pendiente${conEdad.length !== 1 ? "s" : ""} de Cumbre** con estos filtros · ${altas} en prioridad alta.`);
-    lineas.push(``);
-    lineas.push(`---`);
-    lineas.push(``);
-    conEdad.forEach(({ c, ms }, i) => {
-      lineas.push(`### ${i + 1}. ${c.subject || "(sin asunto)"}`);
-      lineas.push(`- **Edificio:** ${edNombre(c.mailbox)}`);
-      lineas.push(`- **Remitente:** ${c.from || "—"}${c.remitenteTipo ? ` (${c.remitenteTipo})` : ""}`);
-      lineas.push(`- **Tema:** ${temaDe(c)}`);
-      lineas.push(`- **Prioridad:** ${c.urgencia || "—"}`);
-      lineas.push(`- **Antigüedad:** ${fmtDur(ms)}`);
-      if (c.escalamiento) lineas.push(`- **Comité en copia**`);
-      if (c.webLink) lineas.push(`- **Abrir en Outlook:** ${c.webLink}`);
-      if (c.snippet) lineas.push(``, `> ${c.snippet.replace(/\n/g, " ").slice(0, 240)}`);
-      lineas.push(``);
+
+    // Prioridad primero, antigüedad como desempate: es un informe para pedir
+    // revisión del equipo, así que lo más urgente debe quedar arriba, no
+    // necesariamente lo más viejo (que es el orden que usa la pantalla).
+    const ordenados = [...conEdad].sort((a, b) => {
+      const ra = PRIORIDAD_RANGO[(a.c.urgencia || "").toLowerCase()] ?? 9;
+      const rb = PRIORIDAD_RANGO[(b.c.urgencia || "").toLowerCase()] ?? 9;
+      return ra !== rb ? ra - rb : b.ms - a.ms;
     });
-    return lineas.join("\n");
+
+    const L = [];
+    L.push(`# 📬 Correos pendientes de respuesta`);
+    L.push(`### Cumbre Asesorías Ltda. · Mesa de Casos`);
+    L.push(``);
+    L.push(`**Generado:** ${ahora}`);
+    L.push(`**Filtros aplicados:** ${filtrosTexto()}`);
+    L.push(``);
+    L.push(`## Resumen`);
+    L.push(``);
+    L.push(`| | |`);
+    L.push(`|---|---:|`);
+    L.push(`| 📥 Pendientes de Cumbre | ${conEdad.length} |`);
+    L.push(`| 🔴 Prioridad alta | ${altas} |`);
+    L.push(`| ⏱️ Antigüedad promedio | ${conEdad.length ? fmtDur(promedio) : "—"} |`);
+    L.push(`| 🕰️ Más antiguo | ${conEdad.length ? fmtDur(conEdad[0].ms) : "—"} |`);
+    L.push(``);
+
+    L.push(`## Vista rápida`);
+    L.push(``);
+    L.push(`| | Edificio | Asunto | Antigüedad |`);
+    L.push(`|---|---|---|---:|`);
+    ordenados.forEach(({ c, ms }) => {
+      L.push(`| ${prioridadIcono(c.urgencia)} | ${celda(edNombre(c.mailbox), 22)} | ${celda(c.subject || "(sin asunto)", 60)} | ${fmtDur(ms)} |`);
+    });
+    L.push(``);
+    L.push(`---`);
+    L.push(``);
+    L.push(`## Detalle`);
+    L.push(``);
+
+    ordenados.forEach(({ c, ms }, i) => {
+      L.push(`### ${prioridadIcono(c.urgencia)} ${i + 1} · ${c.subject || "(sin asunto)"}`);
+      L.push(`**${edNombre(c.mailbox)}** · ${c.from || "—"}${c.remitenteTipo ? ` _(${c.remitenteTipo})_` : ""} · hace ${fmtDur(ms)}`);
+      L.push(``);
+      L.push(`- **Tema:** ${temaDe(c)}`);
+      L.push(`- **Prioridad:** ${(c.urgencia || "—")}${c.escalamiento ? " · 👀 comité en copia" : ""}`);
+      if (c.webLink) L.push(`- 🔗 [Abrir en Outlook](${c.webLink})`);
+      if (c.snippet) { L.push(``); L.push(`> ${celda(c.snippet, 260)}`); }
+      L.push(``);
+      L.push(`---`);
+      L.push(``);
+    });
+
+    L.push(`_Generado automáticamente por Mesa de Casos · casos.cumbregi.com_`);
+    return L.join("\n");
   };
+
 
   const descargarInforme = () => {
     if (!conEdad.length) { toast && toast("No hay correos pendientes con estos filtros.", "warn"); return; }
@@ -1790,7 +1833,7 @@ function Correos({toast}){
       <div className="kpis">
         <div className="kpi"><div className="n">{filtrados.length}</div><div className="l">Pendientes de Cumbre</div></div>
         <div className={"kpi"+(altas?" alert":"")}><div className="n">{altas}</div><div className="l">Prioridad alta</div></div>
-        <div className="kpi"><div className="n">{esperando.length}</div><div className="l">Esperando al residente</div></div>
+        <button className="kpi" style={{cursor:"pointer",textAlign:"left"}} onClick={()=>setVerEsperando(true)}><div className="n">{esperando.length}</div><div className="l">Esperando al residente</div></button>
         <div className="kpi"><div className="n" style={{fontSize:24}}>{conEdad.length?fmtDur(promedio):"—"}</div><div className="l">Antigüedad promedio</div></div>
         <div className={"kpi"+(conEdad.length&&dias(conEdad[0].ms)>=8?" alert":"")}><div className="n" style={{fontSize:24}}>{conEdad.length?fmtDur(conEdad[0].ms):"—"}</div><div className="l">Más antiguo</div></div>
       </div>
@@ -1860,9 +1903,34 @@ function Correos({toast}){
           </div>
 
           {esperando.length>0 && <div className="card pad" style={{marginTop:18,background:"#FEF3C7",borderColor:"#D97706"}}>
-            <div style={{fontSize:13.5,color:"#78350F"}}>
+            <button
+              onClick={()=>setVerEsperando(v=>!v)}
+              style={{background:"none",border:0,padding:0,width:"100%",textAlign:"left",cursor:"pointer",fontSize:13.5,color:"#78350F"}}
+            >
               <strong>{esperando.length}</strong> hilos donde Cumbre ya respondió y falta la confirmación del residente o del comité. No están cerrados —hasta que quede por escrito el acuerdo— pero tampoco requieren acción de ustedes ahora.
-            </div>
+              <span style={{marginLeft:8,fontWeight:700,textDecoration:"underline"}}>{verEsperando?"Ocultar":"Ver estos hilos"}</span>
+            </button>
+
+            {verEsperando && <div className="caselist" style={{border:0,marginTop:14,background:"transparent"}}>
+              {esperando
+                .slice()
+                .sort((a,b)=>new Date(b.ultimoMensajeFecha?.toDate?.() || b.ultimoMensajeFecha) - new Date(a.ultimoMensajeFecha?.toDate?.() || a.ultimoMensajeFecha))
+                .map(c=>{
+                  const f = c.ultimoMensajeFecha;
+                  const t = f?.toDate ? f.toDate().getTime() : new Date(f).getTime();
+                  const ms = isNaN(t) ? 0 : Date.now() - t;
+                  return (
+                    <button key={c.id} className="caserow" onClick={()=>abrirOutlook(c)} style={{background:"#fff"}}>
+                      <div><div style={{marginTop:6}}><span className={"edad "+edadClass(dias(ms))}>{fmtDur(ms)}</span></div></div>
+                      <div>
+                        <div className="tt" style={{fontSize:13.5}}>{c.subject||"(sin asunto)"}</div>
+                        <div className="meta">{edNombre(c.mailbox)} · {temaDe(c)}</div>
+                      </div>
+                      <div className="rt"><span className="hint">respondido</span></div>
+                    </button>
+                  );
+                })}
+            </div>}
           </div>}
 
           <div className="card" style={{marginTop:18}}>

@@ -574,14 +574,29 @@ async function actualizarCaso(id, patch){
 /* ---- Datos maestros: edificios y reglas de tipificación ---- */
 const slug = s => norm(s).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
 
-async function cargarEdificios(){
+/* Un edificio dado de baja NO se borra: se marca 'activo:false'. Borrarlo
+   dejaría huérfanos sus casos en 'casos' y 'email-triage' (guardan el nombre y
+   el id del edificio, no una referencia), y aparecerían en la bandeja sin
+   edificio en vez de desaparecer. Con la marca, sale de todas las vistas de
+   trabajo y de los selectores, conserva su historia y el triage deja de leer
+   su buzón. Sin el campo 'activo' el edificio se considera activo, así los
+   documentos antiguos siguen funcionando igual. */
+async function cargarEdificios(incluirInactivos){
   const qs = await db.collection("edificios").get();
-  return qs.docs.map(d=>({id:d.id, nombre:(d.data().nombre||d.id)}))
+  return qs.docs.map(d=>{ const v=d.data()||{}; return {id:d.id, nombre:(v.nombre||d.id), activo:(v.activo!==false)}; })
+                .filter(e=>incluirInactivos || e.activo)
                 .sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
 }
+/* merge:true es obligatorio: sin él, volver a guardar un edificio ya existente
+   REEMPLAZA el documento entero y borra su campo 'correo' — que es de donde el
+   triage de n8n saca el buzón que debe leer. Ese buzón dejaría de leerse sin
+   que nada avise. */
 async function agregarEdificio(nombre){
   const n = nombre.trim(); if(!n) return;
-  await db.collection("edificios").doc(slug(n)).set({nombre:n});
+  await db.collection("edificios").doc(slug(n)).set({nombre:n}, {merge:true});
+}
+async function marcarEdificioActivo(id, activo){
+  await db.collection("edificios").doc(id).set({activo: !!activo}, {merge:true});
 }
 async function borrarEdificio(id){ await db.collection("edificios").doc(id).delete(); }
 
@@ -740,6 +755,17 @@ function App(){
   const [preEdificio,setPreEdificio]=useState(null);
   const [preFiltro,setPreFiltro]=useState(null);
   const [maestros,setMaestros]=useState(false);
+  const [inactivos,setInactivos]=useState(()=>new Set());   // nombres de edificios dados de baja
+  /* Releer los maestros tras un cambio en Configuración. Sin esto, dar de baja
+     un edificio no se notaba en la Bandeja hasta recargar la página. */
+  const refrescarMaestros=async()=>{
+    try{
+      const eds = await cargarEdificios(true);
+      const vigentes = eds.filter(e=>e.activo);
+      if(vigentes.length) aplicarEdificios(vigentes.map(e=>e.nombre));
+      setInactivos(new Set(eds.filter(e=>!e.activo).map(e=>e.nombre)));
+    }catch(e){ /* sin permisos o sin conexión: se conserva lo ya cargado */ }
+  };
   const [ver,setVer]=useState(0);   // fuerza redibujo cuando cambian los datos maestros
   const [sel,setSel]=useState(null);
   const [toasts,setToasts]=useState([]);
@@ -787,8 +813,10 @@ function App(){
     // Datos maestros: si la base está vacía, seguimos con los valores por defecto del archivo.
     (async()=>{
       try{
-        const eds = await cargarEdificios();
-        if(eds.length) aplicarEdificios(eds.map(e=>e.nombre));
+        const eds = await cargarEdificios(true);
+        const vigentes = eds.filter(e=>e.activo);
+        if(vigentes.length) aplicarEdificios(vigentes.map(e=>e.nombre));
+        setInactivos(new Set(eds.filter(e=>!e.activo).map(e=>e.nombre)));
         const tip = await cargarTipificacion();
         if(tip && tip.familias) aplicarFamilias(tip.familias);
         if(tip && tip.cats) aplicarCats(tip.cats);
@@ -927,9 +955,14 @@ function App(){
 
   if(!dataReady || !maestros) return <div className="loader">Cargando casos…</div>;
 
-  const findRelated=(folio)=> tickets.filter(t=>t.relacionadoCon===folio);
-  const abiertos=tickets.filter(t=>t.estatus!=="Cerrado").length;
-  const porFolio=Object.fromEntries(tickets.map(t=>[t.folio,t]));
+  /* Vistas de trabajo: sin los edificios dados de baja. El Dashboard refleja
+     pendientes reales, y una comunidad que ya no administra Cumbre no lo es.
+     'tickets' (sin filtrar) se conserva para el respaldo de Ajustes: la
+     historia se exporta completa. */
+  const visibles = inactivos.size ? tickets.filter(t=>!inactivos.has(t.edificio)) : tickets;
+  const findRelated=(folio)=> visibles.filter(t=>t.relacionadoCon===folio);
+  const abiertos=visibles.filter(t=>t.estatus!=="Cerrado").length;
+  const porFolio=Object.fromEntries(visibles.map(t=>[t.folio,t]));
   const navegar=(v)=>{ setPreEdificio(null); setPreFiltro(null); setView(v); };
   const verCasosEdificio=(e)=>{ setPreEdificio(e); setPreFiltro(null); setView("portal"); };
   const verCasosFiltro=(f)=>{ setPreEdificio(null); setPreFiltro(f); setView("portal"); };
@@ -966,11 +999,11 @@ function App(){
         <div className="content">
           {!esAdmin && view==="ingreso" && <Ingreso submitCase={submitCase} email={user.email} goMisCasos={()=>setView("miscasos")} />}
           {!esAdmin && view==="miscasos" && <MisCasos tickets={tickets} email={user.email} onOpen={t=>setSel({ticket:t,mode:"residente"})} />}
-          {esAdmin && view==="portal" && <Portal tickets={tickets} porFolio={porFolio} initEd={preEdificio} initFiltro={preFiltro} goPanel={()=>navegar("panel")} onOpen={t=>setSel({ticket:t,mode:"admin"})} />}
-          {esAdmin && view==="panel" && <Panel tickets={tickets} porFolio={porFolio} onOpen={t=>setSel({ticket:t,mode:"admin"})} goPortal={()=>navegar("portal")} verCasos={verCasosFiltro} />}
-          {esAdmin && view==="edificios" && <PanelEdificios tickets={tickets} porFolio={porFolio} verCasos={verCasosEdificio} />}
+          {esAdmin && view==="portal" && <Portal tickets={visibles} porFolio={porFolio} initEd={preEdificio} initFiltro={preFiltro} goPanel={()=>navegar("panel")} onOpen={t=>setSel({ticket:t,mode:"admin"})} />}
+          {esAdmin && view==="panel" && <Panel tickets={visibles} porFolio={porFolio} onOpen={t=>setSel({ticket:t,mode:"admin"})} goPortal={()=>navegar("portal")} verCasos={verCasosFiltro} />}
+          {esAdmin && view==="edificios" && <PanelEdificios tickets={visibles} porFolio={porFolio} verCasos={verCasosEdificio} />}
           {esAdmin && view==="correos" && ES_CUMBRE(user.email) && <Correos toast={toast} />}
-          {esAdmin && view==="reglas" && <Configuracion user={user} puedeEditar={ADMIN_SISTEMA.includes(norm(user.email))} onCambio={()=>setVer(v=>v+1)} ver={ver} toast={toast} />}
+          {esAdmin && view==="reglas" && <Configuracion user={user} puedeEditar={ADMIN_SISTEMA.includes(norm(user.email))} onCambio={()=>{ refrescarMaestros(); setVer(v=>v+1); }} ver={ver} toast={toast} />}
           {esAdmin && view==="ajustes" && <Ajustes user={user} tickets={tickets} toast={toast} />}
         </div>
       </main>
@@ -1615,8 +1648,11 @@ function Correos({toast}){
           db.collection("edificios").get()
         ]);
         if(!vivo) return;
+        /* Mismo criterio que el resto del portal: los edificios con
+           activo:false salen de la vista, sin borrar nada de la base. */
+        const dados_de_baja = new Set(snapE.docs.filter(d=>((d.data()||{}).activo===false)).map(d=>d.id));
         setNombresEd(Object.fromEntries(snapE.docs.map(d=>[d.id,(d.data()||{}).nombre||d.id])));
-        setRows(snapC.docs.map(d=>({id:d.id,...d.data()})));
+        setRows(snapC.docs.map(d=>({id:d.id,...d.data()})).filter(c=>!dados_de_baja.has(c.mailbox)));
       }catch(e){ if(vivo) setErr(e.message||String(e)); }
     })();
     return ()=>{vivo=false};
@@ -2198,7 +2234,8 @@ function Edificios({user,puedeEditar,onCambio,toast}){
 
   const refrescar=async()=>{
     setCargando(true);
-    try{ const l=await cargarEdificios(); setLista(l); if(l.length) aplicarEdificios(l.map(x=>x.nombre)); onCambio(); }
+    try{ const l=await cargarEdificios(true); setLista(l);
+         const act=l.filter(x=>x.activo); if(act.length) aplicarEdificios(act.map(x=>x.nombre)); onCambio(); }
     catch(e){ toast("No se pudo leer la lista de edificios.","error"); }
     setCargando(false);
   };
@@ -2210,6 +2247,17 @@ function Edificios({user,puedeEditar,onCambio,toast}){
     setTrabajando(true);
     try{ await agregarEdificio(n); setNuevo(""); await refrescar(); toast(`«${n}» agregado.`); }
     catch(e){ toast("No se pudo agregar. ¿Tienes permisos de administrador del sistema?","error"); }
+    setTrabajando(false);
+  };
+  /* Dar de baja es lo que hay que usar cuando un edificio deja de ser cliente:
+     desaparece de las vistas y de los selectores, el triage deja de leer su
+     buzón, y su historia queda intacta y reversible. Eliminar sigue existiendo
+     solo para un documento creado por error. */
+  const alternarBaja=async(e)=>{
+    setTrabajando(true);
+    try{ await marcarEdificioActivo(e.id, !e.activo); await refrescar();
+         toast(e.activo ? `«${e.nombre}» dado de baja: sale de las vistas y deja de leerse su correo.` : `«${e.nombre}» reactivado.`, e.activo?"info":"ok"); }
+    catch(err){ toast("No se pudo cambiar el estado. ¿Tienes permisos de administrador del sistema?","error"); }
     setTrabajando(false);
   };
   const quitar=async(e)=>{
@@ -2243,6 +2291,12 @@ function Edificios({user,puedeEditar,onCambio,toast}){
         <p className="hint" style={{marginTop:0}}>
           Cuando un residente escribe su edificio, el sistema lo valida contra esta lista y fija el que más coincide.
           Si un edificio no está aquí, el residente no podrá ingresar su caso.
+        </p>
+        <p className="hint" style={{marginTop:0}}>
+          <b style={{color:"var(--ink)"}}>Dar de baja</b> es lo que corresponde cuando un edificio deja de ser cliente:
+          sale de la Bandeja, del Panel, de Por edificio, de Correos y de todos los selectores, y el triage deja de leer
+          su buzón. No se borra nada y se puede reactivar. <b style={{color:"var(--ink)"}}>Eliminar</b> (✕) borra el
+          documento: úsalo solo si lo creaste por error, porque los casos ya registrados quedarían sin edificio.
         </p>
         {cargando ? <div className="hint">Cargando…</div>
           : <div className="hint">{lista.length>0
@@ -2285,10 +2339,11 @@ function Edificios({user,puedeEditar,onCambio,toast}){
             ? <div className="empty-state"><div className="em-ic">✧</div>Aún no hay edificios en la base de datos.</div>
             : <div className="adj-list" style={{padding:"0 16px 16px"}}>
                 {lista.map(e=>(
-                  <div className="adj-item" key={e.id}>
-                    <span className="adj-ic">🏢</span>
-                    <span className="adj-nm">{e.nombre}</span>
+                  <div className="adj-item" key={e.id} style={e.activo?null:{opacity:.55}}>
+                    <span className="adj-ic">{e.activo?"🏢":"🚫"}</span>
+                    <span className="adj-nm">{e.nombre}{!e.activo && <span className="hint" style={{marginLeft:8}}>dado de baja</span>}</span>
                     <span className="adj-sz mono">{e.id}</span>
+                    {puedeEditar && <button className="btn ghost sm" onClick={()=>alternarBaja(e)} disabled={trabajando} style={{marginRight:8}}>{e.activo?"Dar de baja":"Reactivar"}</button>}
                     {puedeEditar && <button className="adj-rm" onClick={()=>quitar(e)} disabled={trabajando} aria-label={"Eliminar "+e.nombre}>✕</button>}
                   </div>))}
               </div>}

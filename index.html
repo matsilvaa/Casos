@@ -1002,7 +1002,7 @@ function App(){
           {esAdmin && view==="portal" && <Portal tickets={visibles} porFolio={porFolio} initEd={preEdificio} initFiltro={preFiltro} goPanel={()=>navegar("panel")} onOpen={t=>setSel({ticket:t,mode:"admin"})} />}
           {esAdmin && view==="panel" && <Panel tickets={visibles} porFolio={porFolio} onOpen={t=>setSel({ticket:t,mode:"admin"})} goPortal={()=>navegar("portal")} verCasos={verCasosFiltro} />}
           {esAdmin && view==="edificios" && <PanelEdificios tickets={visibles} porFolio={porFolio} verCasos={verCasosEdificio} />}
-          {esAdmin && view==="correos" && ES_CUMBRE(user.email) && <Correos toast={toast} />}
+          {esAdmin && view==="correos" && ES_CUMBRE(user.email) && <Correos toast={toast} user={user} />}
           {esAdmin && view==="reglas" && <Configuracion user={user} puedeEditar={ADMIN_SISTEMA.includes(norm(user.email))} onCambio={()=>{ refrescarMaestros(); setVer(v=>v+1); }} ver={ver} toast={toast} />}
           {esAdmin && view==="ajustes" && <Ajustes user={user} tickets={tickets} toast={toast} />}
         </div>
@@ -1628,8 +1628,9 @@ function Panel({tickets,porFolio,onOpen,goPortal,verCasos}){
    se recalcula cada vez en vez de quedar congelado con los valores iniciales. */
 const famPorLabel = () => Object.fromEntries(Object.entries(FAMILIAS).map(([k,v])=>[v.label,k]));
 
-function Correos({toast}){
+function Correos({toast,user}){
   const [rows,setRows]=useState(null);
+  const [bajas,setBajas]=useState(()=>new Set());   // ids de edificios dados de baja
   const [err,setErr]=useState(null);
   const [fEd,setFEd]=useState([]);
   const [fArea,setFArea]=useState("Todas");
@@ -1651,6 +1652,7 @@ function Correos({toast}){
         /* Mismo criterio que el resto del portal: los edificios con
            activo:false salen de la vista, sin borrar nada de la base. */
         const dados_de_baja = new Set(snapE.docs.filter(d=>((d.data()||{}).activo===false)).map(d=>d.id));
+        setBajas(dados_de_baja);
         setNombresEd(Object.fromEntries(snapE.docs.map(d=>[d.id,(d.data()||{}).nombre||d.id])));
         setRows(snapC.docs.map(d=>({id:d.id,...d.data()})).filter(c=>!dados_de_baja.has(c.mailbox)));
       }catch(e){ if(vivo) setErr(e.message||String(e)); }
@@ -1685,6 +1687,39 @@ function Correos({toast}){
 
   const pendientes = rows.filter(c=>c.ultimoMensajeDireccion!=="saliente" && c.requiereRespuesta!==false);
   const esperando  = rows.filter(c=>c.ultimoMensajeDireccion==="saliente");
+
+  /* ---- Casos sin edificio asignado ----
+     El triage no siempre puede deducir el edificio: cuando el correo llega a una
+     casilla compartida, o cuando entró por un buzón que después se dio de baja,
+     el caso queda en 'sin-asignar' y no aparece bajo ningún edificio en los
+     filtros. Aquí se asignan a mano. Se escribe el id del edificio en 'mailbox',
+     que es el mismo campo que usa el triage, más una marca de auditoría para
+     distinguir lo asignado a mano de lo que dedujo la IA. */
+  const sinEdificio = pendientes.filter(c=>!c.mailbox || c.mailbox==="sin-asignar");
+  /* Los edificios dados de baja SÍ aparecen en el desplegable, al final y marcados.
+     Un caso puede pertenecer justamente a un edificio que ya no administramos — es el
+     motivo por el que quedó sin asignar — y asignárselo es lo que lo saca de la vista. */
+  const edificiosAsignables = Object.entries(nombresEd)
+    .map(([id,nombre])=>({id,nombre,baja:bajas.has(id)}))
+    .sort((a,b)=> (a.baja?1:0)-(b.baja?1:0) || a.nombre.localeCompare(b.nombre,"es"));
+
+  const asignarEdificio = async (caso,idEdificio)=>{
+    if(!idEdificio) return;
+    await db.collection("email-triage").doc(caso.id).update({
+      mailbox: idEdificio,
+      mailboxOrigen: "manual",
+      mailboxAsignadoAMano: true,
+      mailboxAsignadoPor: user.email,
+      mailboxAsignadoEl: new Date().toISOString()
+    });
+    /* Si el edificio está dado de baja, el caso sale de la vista por completo:
+       es el mismo criterio con que se cargan los casos al entrar. */
+    setRows(rs=>bajas.has(idEdificio)
+      ? rs.filter(r=>r.id!==caso.id)
+      : rs.map(r=>r.id===caso.id?{...r,mailbox:idEdificio,mailboxOrigen:"manual",mailboxAsignadoAMano:true}:r));
+    toast("Caso asignado a "+(nombresEd[idEdificio]||idEdificio)+(bajas.has(idEdificio)?" · sale del portal por estar dado de baja":""));
+  };
+
 
   const filtrados = pendientes.filter(c=>{
     if(fEd.length && !fEd.includes(edNombre(c.mailbox))) return false;
@@ -1969,6 +2004,23 @@ function Correos({toast}){
             </div>}
           </div>}
 
+          {sinEdificio.length>0 && <div className="card" style={{marginTop:18}}>
+            <div className="pad" style={{paddingBottom:0}}>
+              <div className="block-title" style={{margin:0}}>Sin edificio asignado ({sinEdificio.length})</div>
+              <div className="hint" style={{marginTop:4}}>El triage no pudo deducir el edificio. Abre el correo para verificar y asígnalo: al asignarlo deja de estar en esta lista y empieza a contar bajo su edificio.</div>
+            </div>
+            <div className="caselist" style={{border:0,margin:"10px 0 0"}}>
+              {sinEdificio
+                .map(c=>({c,ms:msDesde(c)}))
+                .sort((a,b)=>b.ms-a.ms)
+                .map(({c,ms})=>(
+                  <FilaSinEdificio key={c.id} caso={c} ms={ms} edificios={edificiosAsignables}
+                    onAbrir={()=>abrirOutlook(c)} onAsignar={id=>asignarEdificio(c,id)}
+                    tema={temaDe(c)} toast={toast} />
+                ))}
+            </div>
+          </div>}
+
           <div className="card" style={{marginTop:18}}>
             <div className="pad" style={{paddingBottom:0}}><div className="block-title" style={{margin:0}}>Todos los pendientes ({filtrados.length})</div></div>
             <div className="caselist" style={{border:0,margin:"10px 0 0"}}>
@@ -1987,6 +2039,39 @@ function Correos({toast}){
             </div>
           </div>
         </>}
+    </div>
+  );
+}
+
+/* Fila de un caso sin edificio. Va en un div y no en un button como el resto de
+   .caserow: un <select> dentro de un <button> es HTML inválido y el clic del
+   desplegable se lo come el botón padre. El clic para abrir Outlook queda en el
+   bloque de texto, no en toda la fila. */
+function FilaSinEdificio({caso,ms,edificios,onAbrir,onAsignar,tema,toast}){
+  const [sel,setSel]=useState("");
+  const [guardando,setGuardando]=useState(false);
+  const guardar=async()=>{
+    if(!sel || guardando) return;
+    setGuardando(true);
+    try{ await onAsignar(sel); }
+    catch(e){ toast("No se pudo asignar: "+(e.message||String(e))); setGuardando(false); }
+  };
+  return (
+    <div className="caserow" style={{cursor:"default"}}>
+      <div><div style={{marginTop:6}}><span className={"edad "+edadClass(dias(ms))}>{fmtDur(ms)}</span></div></div>
+      <div onClick={onAbrir} style={{cursor:"pointer"}} title="Abrir el correo en Outlook">
+        <div className="tt">{caso.subject||"(sin asunto)"}</div>
+        <div className="meta">{caso.from} · {tema}</div>
+        <div className="hint" style={{marginTop:4}}>{(caso.snippet||"").slice(0,120)}</div>
+      </div>
+      <div className="rt" style={{flexDirection:"row",alignItems:"center",gap:8}}>
+        <select className="ctrl" style={{width:"auto",padding:"7px 10px"}} value={sel}
+          onChange={e=>setSel(e.target.value)} disabled={guardando}>
+          <option value="">Elegir edificio…</option>
+          {edificios.map(e=><option key={e.id} value={e.id}>{e.nombre}{e.baja?" (dado de baja)":""}</option>)}
+        </select>
+        <button className="btn" onClick={guardar} disabled={!sel||guardando}>{guardando?"Asignando…":"Asignar"}</button>
+      </div>
     </div>
   );
 }

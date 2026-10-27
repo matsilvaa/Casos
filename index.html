@@ -1685,8 +1685,21 @@ function Correos({toast,user}){
     return isNaN(t) ? 0 : Date.now() - t;
   };
 
-  const pendientes = rows.filter(c=>c.ultimoMensajeDireccion!=="saliente" && c.requiereRespuesta!==false);
-  const esperando  = rows.filter(c=>c.ultimoMensajeDireccion==="saliente");
+  /* Criterio por ESTADO (27-oct-2026). Antes se decidía por quién escribió el último mensaje:
+     "Esperando al residente" contaba TODO hilo cuyo último correo fue de Cumbre, incluidos los
+     cerrados, y un hilo donde Cumbre prometió algo ("lo vamos a ver") desaparecía de pendientes.
+     Ahora manda estadoHilo, que es lo que decide el triage. En pendientes, los documentos antiguos
+     sin estado (versión 3) siguen con el criterio anterior. */
+  const estadoDe = c => String(c.estadoHilo||"").toLowerCase();
+  const pendientes = rows.filter(c=>{
+    const e = estadoDe(c);
+    if(e) return e==="pendiente_cumbre" || e==="ambiguo_revision";
+    return c.ultimoMensajeDireccion!=="saliente" && c.requiereRespuesta!==false;
+  });
+  /* Los documentos sin estado que terminan en un correo de Cumbre son salidas del triage v3
+     (anteriores al 15-sep-2026): 915 al 27-oct. No esperan a nadie que se esté siguiendo y
+     quedan fuera de este contador. */
+  const esperando  = rows.filter(c=>estadoDe(c)==="esperando_externo");
 
   /* ---- Casos sin edificio asignado ----
      El triage no siempre puede deducir el edificio: cuando el correo llega a una
